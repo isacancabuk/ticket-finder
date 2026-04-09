@@ -1,0 +1,52 @@
+import { getNextQueryToRun } from "../services/getNextQueryToRun.js";
+import { runQuery } from "../services/runQuery.js";
+import { buildNotificationDecision } from "../services/buildNotificationDecision.js";
+import { buildTelegramMessage } from "../services/buildTelegramMessage.js";
+import { sendTelegramMessage } from "../services/sendTelegramMessage.js";
+
+const TICK_INTERVAL_MS = 60 * 1000; // 60 seconds
+
+let isRunning = false;
+
+export function startScheduler() {
+  console.log("[scheduler] Scheduler started (tick every 60s)");
+
+  setInterval(async () => {
+    if (isRunning) {
+      console.log("[scheduler] Skipping tick (still running)");
+      return;
+    }
+
+    isRunning = true;
+
+    try {
+      const query = await getNextQueryToRun();
+
+      if (!query) {
+        console.log("[scheduler] No active queries");
+        return;
+      }
+
+      console.log(
+        `[scheduler] Running query ${query.id} ` +
+          `(domain=${query.domain} event=${query.eventId} section=${query.section})`
+      );
+
+      const result = await runQuery(query.id);
+
+      try {
+        const decision = buildNotificationDecision(result);
+        if (decision.shouldNotify) {
+          const message = buildTelegramMessage(result.updatedQuery);
+          await sendTelegramMessage(message);
+        }
+      } catch (notifyErr) {
+        console.error("[scheduler] Notification error:", notifyErr.message);
+      }
+    } catch (err) {
+      console.error("[scheduler] Error:", err.message);
+    } finally {
+      isRunning = false;
+    }
+  }, TICK_INTERVAL_MS);
+}

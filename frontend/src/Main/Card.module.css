@@ -1,0 +1,96 @@
+.cardDiv {
+    width: 1000px;
+    height: 220px;
+    margin: 20px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.cardDiv:hover {
+    transform: scale(1.02);
+    z-index: 10;
+    cursor: pointer;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.cardDiv[data-status="found"] {
+    background: rgba(193, 229, 159, 0.39);
+    border: 1px solid rgba(193, 229, 159, 0.87);
+}
+
+.cardDiv[data-status='finding'] {
+    background: rgba(174, 222, 252, 0.39);
+    border: 1px solid rgba(174, 222, 252, 0.87);
+}
+
+.cardDiv[data-status="stopped"] {
+    background: rgba(180, 180, 180, 0.39);
+    border: 1px solid rgba(180, 180, 180, 0.87);
+}
+
+.cardDiv[data-status="error"] {
+    background: rgba(255, 136, 85, 0.30);
+    border: 1px solid rgba(255, 136, 85, 0.75);
+}
+
+.imgDiv {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 12px;
+}
+
+.imgDiv img {
+    width: 120px;
+    height: auto;
+}
+
+.flag {
+    font-size: 40px;
+    border-radius: 30%;
+    margin: 6px;
+}
+
+.infoDiv {
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+}
+
+.statusText {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.errorMessage {
+    font-size: 11px;
+    color: #cc4400;
+    max-width: 180px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.eventLink {
+    font-size: 22px;
+    color: #305bce;
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.eventLink:hover {
+    background-color: rgba(48, 91, 206, 0.1);
+}

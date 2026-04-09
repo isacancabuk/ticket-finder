@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Domain {
+  UK
+  DE
+}
+
+enum Site {
+  TICKETMASTER
+}
+
+enum QueryStatus {
+  FINDING   // bakılıyor, bilet yok
+  FOUND     // bilet bulundu (isAvailable = true)
+  STOPPED   // manuel durduruldu
+  ERROR     // teknik hata
+}
+
+model Query {
+  id                String       @id @default(uuid())
+
+  domain            Domain
+  site              Site
+  eventId           String
+  eventSlug         String?
+  eventUrl          String
+  section           String
+  minSeats          Int          @default(1)
+
+  isActive          Boolean      @default(true)
+
+  // Sistem durumu (frontend ana referansı)
+  status            QueryStatus  @default(FINDING)
+
+  // Son kontrol sonucu
+  lastCheckedAt     DateTime?
+  isAvailable       Boolean      @default(false)
+  lastErrorMessage  String?
+  eventName         String?
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  // Log ilişkisi
+  results           CheckResult[]
+
+  @@unique([site, domain, eventId, section])
+}
+
+model CheckResult {
+  id            String        @id @default(uuid())
+
+  queryId       String
+  query         Query         @relation(fields: [queryId], references: [id], onDelete: Cascade)
+
+  checkedAt     DateTime      @default(now())
+  status        QueryStatus
+  isAvailable   Boolean
+
+  eventName     String?
+  httpStatus    Int?
+  errorMessage  String?
+  latencyMs     Int?
+
+  @@index([queryId])
+}

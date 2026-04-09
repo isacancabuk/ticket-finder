@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Query" ADD COLUMN     "minSeats" INTEGER NOT NULL DEFAULT 1;

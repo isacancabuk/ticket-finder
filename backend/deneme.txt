@@ -1,0 +1,542 @@
+{
+    "pages": [
+        {
+            "height": 7680,
+            "images": [
+                {
+                    "height": 768,
+                    "type": "SVG",
+                    "url": "3/18/31858",
+                    "width": 1024,
+                    "x": 0,
+                    "y": 0
+                }
+            ],
+            "labelStyles": [
+                {
+                    "color": "ffffff",
+                    "font": "arialebold",
+                    "id": "troot",
+                    "size": 200
+                },
+                {
+                    "color": "404040",
+                    "font": "arialebold",
+                    "id": "nroot",
+                    "size": 200
+                },
+                {
+                    "color": "e0e0ff",
+                    "font": "arialebold",
+                    "id": "mroot",
+                    "size": 200
+                }
+            ],
+            "segments": [
+                {
+                    "id": "s_38",
+                    "name": "231",
+                    "segmentCategory": "COMPOSITE",
+                    "segments": [
+                        {
+                            "id": "s_38:GIZTC",
+                            "name": "231",
+                            "segmentCategory": "SECTION",
+                            "segments": [
+                                {
+                                    "id": "s_38:GIZTCOSI",
+                                    "name": "H",
+                                    "placeSize": 23,
+                                    "placesNoKeys": [
+                                        [
+                                            "GIZTCOSIHIZDKNY",
+                                            "257",
+                                            4057.25,
+                                            2279.94,
+                                            "80",
+                                            18,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTCOSIHIZDKNQ",
+                                            "256",
+                                            4082.30,
+                                            2268.83,
+                                            "80",
+                                            17,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTCOSIHIZDKNI",
+                                            "255",
+                                            4107.47,
+                                            2258.00,
+                                            "80",
+                                            16,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTCOSIHIZDKNA",
+                                            "254",
+                                            4132.87,
+                                            2247.20,
+                                            "80",
+                                            15,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTCOSIHIZDKMY",
+                                            "253",
+                                            4158.28,
+                                            2236.96,
+                                            "80",
+                                            14,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTCOSIHIZDKMQ",
+                                            "252",
+                                            4183.81,
+                                            2227.01,
+                                            "80",
+                                            13,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTCOSIHIZDKMI",
+                                            "251",
+                                            4209.56,
+                                            2217.09,
+                                            "80",
+                                            12,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTCOSIHIZDKMA",
+                                            "250",
+                                            4235.32,
+                                            2207.73,
+                                            "80",
+                                            11,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTCOSIHIZDIOI",
+                                            "249",
+                                            4261.17,
+                                            2198.66,
+                                            "80",
+                                            10,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTCOSIHIZDIOA",
+                                            "248",
+                                            4287.25,
+                                            2189.63,
+                                            "80",
+                                            9,
+                                            0
+                                        ]
+                                    ],
+                                    "segmentCategory": "ROW",
+                                    "totalPlaces": 10
+                                },
+                                {
+                                    "id": "s_38:GIZTCOSK",
+                                    "name": "J",
+                                    "placeSize": 23,
+                                    "placesNoKeys": [
+                                        [
+                                            "GIZTCOSKHIZDKNY",
+                                            "257",
+                                            4035.05,
+                                            2234.45,
+                                            "80",
+                                            18,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTCOSKHIZDKNQ",
+                                            "256",
+                                            4060.09,
+                                            2223.33,
+                                            "80",
+                                            17,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTCOSKHIZDKNI",
+                                            "255",
+                                            4085.25,
+                                            2212.48,
+                                            "80",
+                                            16,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTCOSKHIZDKNA",
+                                            "254",
+                                            4110.64,
+                                            2201.65,
+                                            "80",
+                                            15,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTCOSKHIZDKMY",
+                                            "253",
+                                            4136.04,
+                                            2191.38,
+                                            "80",
+                                            14,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTCOSKHIZDKMQ",
+                                            "252",
+                                            4161.55,
+                                            2181.39,
+                                            "80",
+                                            13,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTCOSKHIZDKMI",
+                                            "251",
+                                            4187.29,
+                                            2171.42,
+                                            "80",
+                                            12,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTCOSKHIZDKMA",
+                                            "250",
+                                            4213.02,
+                                            2162.01,
+                                            "80",
+                                            11,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTCOSKHIZDIOI",
+                                            "249",
+                                            4238.98,
+                                            2152.62,
+                                            "80",
+                                            10,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTCOSKHIZDIOA",
+                                            "248",
+                                            4264.92,
+                                            2143.79,
+                                            "80",
+                                            9,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTCOSKHIZDINY",
+                                            "247",
+                                            4290.95,
+                                            2135.25,
+                                            "80",
+                                            8,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTCOSKHIZDINQ",
+                                            "246",
+                                            4317.21,
+                                            2126.75,
+                                            "80",
+                                            7,
+                                            1
+                                        ]
+                                    ],
+                                    "segmentCategory": "ROW",
+                                    "totalPlaces": 12
+                                },
+                            ],
+                            "totalPlaces": 218
+                        }
+                    ],
+                    "shapes": [
+                        {
+                            "bounds": [
+                                "4389,1469 3702,1713 4048,2422 4567,2238 4567,2238 4389,1469"
+                            ],
+                            "filled": true,
+                            "labels": [
+                                {
+                                    "angle": 0,
+                                    "height": 0,
+                                    "size": 159,
+                                    "styleId": "troot",
+                                    "text": "231",
+                                    "width": 0,
+                                    "x": 4165,
+                                    "y": 1843
+                                }
+                            ],
+                            "mode": "HIDE",
+                            "path": "M4389.12,1469.65C4148.73,1525.23,3918.67,1607.78,3702.3,1713.95C3702.3,1713.95,4048.24,2422.89,4048.24,2422.89C4211.85,2342.51,4385.85,2280.03,4567.67,2238.01L4567.67,2238.01C4567.67,2238.01,4478.4,1853.83,4389.12,1469.65Z"
+                        }
+                    ],
+                    "totalPlaces": 218
+                },
+                {
+                    "id": "s_37",
+                    "name": "233",
+                    "segmentCategory": "COMPOSITE",
+                    "segments": [
+                        {
+                            "id": "s_37:GIZTG",
+                            "name": "233",
+                            "segmentCategory": "SECTION",
+                            "segments": [
+                                {
+                                    "id": "s_37:GIZTGOSI",
+                                    "name": "H",
+                                    "placeSize": 23,
+                                    "placesNoKeys": [
+                                        [
+                                            "GIZTGOSIHIZTANA",
+                                            "304",
+                                            3162.28,
+                                            2989.54,
+                                            "98",
+                                            18,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTGOSIHIZTAMY",
+                                            "303",
+                                            3179.55,
+                                            2968.27,
+                                            "98",
+                                            17,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTGOSIHIZTAMQ",
+                                            "302",
+                                            3197.06,
+                                            2947.20,
+                                            "98",
+                                            16,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTGOSIHIZTAMI",
+                                            "301",
+                                            3214.79,
+                                            2926.05,
+                                            "98",
+                                            15,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTGOSIHIZTAMA",
+                                            "300",
+                                            3232.78,
+                                            2905.38,
+                                            "98",
+                                            14,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTGOSIHIZDSOI",
+                                            "299",
+                                            3251.01,
+                                            2884.93,
+                                            "98",
+                                            13,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTGOSIHIZDSOA",
+                                            "298",
+                                            3269.46,
+                                            2864.40,
+                                            "98",
+                                            12,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTGOSIHIZDSNY",
+                                            "297",
+                                            3288.15,
+                                            2844.36,
+                                            "98",
+                                            11,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTGOSIHIZDSNQ",
+                                            "296",
+                                            3307.07,
+                                            2824.55,
+                                            "98",
+                                            10,
+                                            0
+                                        ],
+                                        [
+                                            "GIZTGOSIHIZDSNI",
+                                            "295",
+                                            3326.21,
+                                            2804.66,
+                                            "98",
+                                            9,
+                                            0
+                                        ]
+                                    ],
+                                    "segmentCategory": "ROW",
+                                    "totalPlaces": 10
+                                },
+                                {
+                                    "id": "s_37:GIZTGOSK",
+                                    "name": "J",
+                                    "placeSize": 23,
+                                    "placesNoKeys": [
+                                        [
+                                            "GIZTGOSKHIZTANA",
+                                            "304",
+                                            3121.85,
+                                            2959.09,
+                                            "98",
+                                            18,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTGOSKHIZTAMY",
+                                            "303",
+                                            3139.11,
+                                            2937.81,
+                                            "98",
+                                            17,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTGOSKHIZTAMQ",
+                                            "302",
+                                            3156.60,
+                                            2916.73,
+                                            "98",
+                                            16,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTGOSKHIZTAMI",
+                                            "301",
+                                            3174.31,
+                                            2895.56,
+                                            "98",
+                                            15,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTGOSKHIZTAMA",
+                                            "300",
+                                            3192.27,
+                                            2874.87,
+                                            "98",
+                                            14,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTGOSKHIZDSOI",
+                                            "299",
+                                            3210.47,
+                                            2854.38,
+                                            "98",
+                                            13,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTGOSKHIZDSOA",
+                                            "298",
+                                            3228.88,
+                                            2833.82,
+                                            "98",
+                                            12,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTGOSKHIZDSNY",
+                                            "297",
+                                            3247.53,
+                                            2813.75,
+                                            "98",
+                                            11,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTGOSKHIZDSNQ",
+                                            "296",
+                                            3266.40,
+                                            2793.60,
+                                            "98",
+                                            10,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTGOSKHIZDSNI",
+                                            "295",
+                                            3285.50,
+                                            2773.96,
+                                            "98",
+                                            9,
+                                            1
+                                        ],
+                                        [
+                                            "GIZTGOSKHIZDSNA",
+                                            "294",
+                                            3304.82,
+                                            2754.53,
+                                            "98",
+                                            8,
+                                            1
+                                        ]
+                                    ],
+                                    "segmentCategory": "ROW",
+                                    "totalPlaces": 11
+                                },
+                            ],
+                            "totalPlaces": 217
+                        }
+                    ],
+                    "shapes": [
+                        {
+                            "bounds": [
+                                "3090,2105 2581,2624 3203,3110 3586,2718 3586,2718 3090,2105"
+                            ],
+                            "filled": true,
+                            "labels": [
+                                {
+                                    "angle": 0,
+                                    "height": 0,
+                                    "size": 159,
+                                    "styleId": "troot",
+                                    "text": "233",
+                                    "width": 0,
+                                    "x": 3092,
+                                    "y": 2530
+                                }
+                            ],
+                            "mode": "HIDE",
+                            "path": "M3090.27,2105.9C2901.8,2259.14,2731.03,2433.31,2581.5,2624.87C2581.5,2624.87,3203.04,3110.39,3203.04,3110.39C3315.76,2965.88,3444.5,2834.47,3586.59,2718.84L3586.59,2718.84C3586.59,2718.84,3338.43,2412.37,3090.27,2105.9Z"
+                        }
+                    ],
+                    "totalPlaces": 217
+                },
+
+],
+            "width": 10240
+        }
+    ],
+    "totalPlaces": 14435,
+    "venueConfigId": "9953"
+}
