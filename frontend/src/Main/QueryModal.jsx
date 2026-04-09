@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useFetcher } from "react-router-dom";
-import { API_BASE } from "../api";
+import { apiFetch } from "../api";
 import styles from "./QueryModal.module.css";
 
 const STATUS_LABELS = {
@@ -23,7 +23,7 @@ export default function QueryModal({ query, onClose }) {
     async function fetchLogs() {
       setLogsLoading(true);
       try {
-        const res = await fetch(`${API_BASE}/queries/${query.id}/logs`);
+        const res = await apiFetch(`/queries/${query.id}/logs`);
         if (res.ok && !cancelled) {
           const data = await res.json();
           setLogs(data);

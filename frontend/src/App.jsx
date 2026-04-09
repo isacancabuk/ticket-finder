@@ -1,10 +1,10 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { RootLayout } from "./RootLayout";
-import { API_BASE } from "./api";
+import { apiFetch } from "./api";
 
 // Loader: fetch all queries from backend
 async function rootLoader() {
-  const res = await fetch(`${API_BASE}/queries`);
+  const res = await apiFetch("/queries");
   if (!res.ok) throw new Response("Failed to load queries", { status: res.status });
   return res.json();
 }
@@ -21,7 +21,7 @@ async function rootAction({ request }) {
       minSeats: formData.get("minSeats") || "1",
     };
 
-    const res = await fetch(`${API_BASE}/queries`, {
+    const res = await apiFetch("/queries", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -37,19 +37,19 @@ async function rootAction({ request }) {
 
   if (intent === "stop") {
     const id = formData.get("queryId");
-    await fetch(`${API_BASE}/queries/${id}/stop`, { method: "PATCH" });
+    await apiFetch(`/queries/${id}/stop`, { method: "PATCH" });
     return { ok: true };
   }
 
   if (intent === "resume") {
     const id = formData.get("queryId");
-    await fetch(`${API_BASE}/queries/${id}/resume`, { method: "PATCH" });
+    await apiFetch(`/queries/${id}/resume`, { method: "PATCH" });
     return { ok: true };
   }
 
   if (intent === "delete") {
     const id = formData.get("queryId");
-    await fetch(`${API_BASE}/queries/${id}`, { method: "DELETE" });
+    await apiFetch(`/queries/${id}`, { method: "DELETE" });
     return { ok: true, deleted: true };
   }
 
