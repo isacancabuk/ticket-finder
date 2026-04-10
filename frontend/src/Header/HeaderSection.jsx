@@ -5,6 +5,11 @@ import Button from "./Button";
 
 const INPUTS = [
   {
+    type: "text",
+    name: "orderNo",
+    placeholder: "Order No.",
+  },
+  {
     type: "url",
     name: "url",
     placeholder: "Event URL",
@@ -12,13 +17,18 @@ const INPUTS = [
   {
     type: "text",
     name: "section",
-    placeholder: "Section",
+    placeholder: "Section No.",
   },
   {
     type: "number",
     name: "minSeats",
-    placeholder: "Min Seats",
+    placeholder: "Min. Koltuk",
     required: false,
+  },
+  {
+    type: "number",
+    name: "maxPrice",
+    placeholder: "Max. Fiyat",
   },
 ];
 
@@ -35,25 +45,31 @@ export default function HeaderSection() {
   }, [navigation.state, actionData]);
 
   return (
-    <div className="w-full flex flex-col items-center">
+    <div className="h-[220px] w-full flex flex-col items-center justify-center">
       <Form
         ref={formRef}
         method="POST"
-        className="w-[69%] h-50 flex justify-evenly items-center"
+        className="w-[1000px] grid grid-cols-4 gap-5"
       >
         <input type="hidden" name="_action" value="create" />
-        {INPUTS.map((input) => (
-          <Input
-            key={input.name}
-            type={input.type}
-            name={input.name}
-            placeholder={input.placeholder}
-            required={input.required !== false}
-          />
-        ))}
-        <Button disabled={isSubmitting}>
-          {isSubmitting ? "Submitting..." : "Start Query"}
-        </Button>
+        {INPUTS.map((input) => {
+          const colClass = input.name === "url" ? "col-span-3" : "col-span-1";
+          return (
+            <div key={input.name} className={colClass}>
+              <Input
+                type={input.type}
+                name={input.name}
+                placeholder={input.placeholder}
+                required={input.required !== false}
+              />
+            </div>
+          );
+        })}
+        <div className="col-span-1 flex">
+          <Button disabled={isSubmitting} className="w-full h-[52px]">
+            {isSubmitting ? "İşleniyor..." : "İstek Başlat"}
+          </Button>
+        </div>
       </Form>
       {actionData?.error && (
         <p className="text-red-500 text-sm mt-1">{actionData.error}</p>

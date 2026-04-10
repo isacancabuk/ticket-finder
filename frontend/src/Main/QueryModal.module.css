@@ -115,6 +115,11 @@
     font-weight: 700;
 }
 
+.infoValue[data-status="price_exceeded"] {
+    color: #b8860b;
+    font-weight: 700;
+}
+
 .link {
     font-size: 14px;
     color: #305bce;
@@ -201,11 +206,33 @@
     padding-top: 20px;
 }
 
+.logsHeaderContainer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
 .logsTitle {
     font-size: 16px;
     font-weight: 700;
     color: #555;
-    margin-bottom: 12px;
+    margin-bottom: 0;
+}
+
+.btnToggleLogs {
+    background: none;
+    border: 1px solid #ccc;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #555;
+    transition: all 0.2s ease;
+}
+
+.btnToggleLogs:hover {
+    background: #e0e0e0;
 }
 
 .logsLoading,
@@ -252,6 +279,14 @@
 
 .logsTable tbody tr:hover {
     background: rgba(48, 91, 206, 0.04);
+}
+
+.logRowPriceExceeded {
+    background: rgba(255, 193, 7, 0.15);
+}
+
+.logRowPriceExceeded:hover {
+    background: rgba(255, 193, 7, 0.25) !important;
 }
 
 .logError {

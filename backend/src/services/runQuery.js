@@ -35,6 +35,7 @@ export async function runQuery(queryId) {
         eventId: query.eventId,
         section: query.section,
         minSeats: query.minSeats || 1,
+        maxPrice: query.maxPrice,
       });
     } else {
       throw new Error("UNSUPPORTED_DOMAIN");
@@ -51,6 +52,8 @@ export async function runQuery(queryId) {
 
   let newStatus = "ERROR";
   let isAvailable = false;
+  let foundPrice = null;
+  let priceExceeded = false;
   let httpStatus = null;
   let errorMessage = null;
   let errorCategory = null;
@@ -58,6 +61,8 @@ export async function runQuery(queryId) {
   if (result.success) {
     isAvailable = result.isAvailable;
     newStatus = result.isAvailable ? "FOUND" : "FINDING";
+    foundPrice = result.foundPrice ?? null;
+    priceExceeded = result.priceExceeded ?? false;
   } else {
     newStatus = "ERROR";
     errorMessage = result.errorMessage || "UNKNOWN: Unknown error";
@@ -79,6 +84,8 @@ export async function runQuery(queryId) {
       data: {
         status: newStatus,
         isAvailable,
+        foundPrice,
+        priceExceeded,
         lastErrorMessage: errorMessage,
         lastCheckedAt: new Date(),
       },
@@ -90,6 +97,8 @@ export async function runQuery(queryId) {
         queryId: queryId,
         status: newStatus,
         isAvailable,
+        foundPrice,
+        priceExceeded,
         eventName: updatedQuery.eventName,
         httpStatus,
         errorMessage,
@@ -104,6 +113,8 @@ export async function runQuery(queryId) {
       previousIsAvailable: query.isAvailable,
       currentStatus: newStatus,
       currentIsAvailable: isAvailable,
+      foundPrice,
+      priceExceeded,
       errorMessage,
       errorCategory
     };

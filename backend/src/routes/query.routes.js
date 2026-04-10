@@ -1,6 +1,7 @@
 import express from "express";
 import prisma from "../prisma.js";
 import { parseTicketmasterUrl } from "../utils/parseTicketmasterUrl.js";
+import { fetchEventMetadata } from "../utils/fetchEventMetadata.js";
 import { runQuery } from "../services/runQuery.js";
 
 const router = express.Router();
@@ -14,50 +15,68 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { url, section, minSeats } = req.body;
-
-  if (!url || !section) {
-    return res.status(400).json({ error: "Missing required fields: url, section" });
-  }
-
-  // Validate minSeats if provided
-  const seats = minSeats ? parseInt(minSeats, 10) : 1;
-  if (isNaN(seats) || seats < 1) {
-    return res.status(400).json({ error: "minSeats must be a positive integer" });
-  }
-
-  // Parse the Ticketmaster URL
-  let parsed;
   try {
-    parsed = parseTicketmasterUrl(url);
-  } catch (err) {
-    return res.status(400).json({ error: err.message });
-  }
+    const { url, section, minSeats, maxPrice, orderNo } = req.body;
 
-  const { domain, eventId, eventSlug, eventName, eventUrl } = parsed;
-
-  try {
-    const query = await prisma.query.create({
-      data: {
-        domain,
-        site: "TICKETMASTER",
-        eventId,
-        eventSlug,
-        eventName,
-        eventUrl,
-        section,
-        minSeats: seats,
-      },
-    });
-
-    res.status(201).json(query);
-  } catch (err) {
-    // Prisma unique constraint violation
-    if (err.code === "P2002") {
-      return res.status(409).json({
-        error: "A query with this event and section already exists",
-      });
+    if (!url || !section || !orderNo || maxPrice == null) {
+      return res.status(400).json({ error: "Missing required fields: url, section, orderNo, maxPrice" });
     }
+
+    // Validate minSeats if provided
+    const seats = minSeats ? parseInt(minSeats, 10) : 1;
+    if (isNaN(seats) || seats < 1) {
+      return res.status(400).json({ error: "minSeats must be a positive integer" });
+    }
+
+    // Validate maxPrice (input is in EUR, stored as cents)
+    const price = parseInt(maxPrice, 10);
+    if (isNaN(price) || price < 1) {
+      return res.status(400).json({ error: "maxPrice must be a positive integer (in EUR, e.g. 200)" });
+    }
+    const maxPriceCents = price * 100;
+
+    // Parse the Ticketmaster URL
+    let parsed;
+    try {
+      parsed = parseTicketmasterUrl(url);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+
+    const { domain, eventId, eventSlug, eventName, eventUrl } = parsed;
+
+    // Fetch event metadata (best-effort, non-blocking)
+    const metadata = await fetchEventMetadata(eventUrl);
+
+    try {
+      const query = await prisma.query.create({
+        data: {
+          domain,
+          site: "TICKETMASTER",
+          eventId,
+          eventSlug,
+          eventName,
+          eventUrl,
+          section,
+          minSeats: seats,
+          maxPrice: maxPriceCents,
+          orderNo,
+          eventLocation: metadata.eventLocation,
+          eventDate: metadata.eventDate,
+        },
+      });
+
+      res.status(201).json(query);
+    } catch (err) {
+      // Prisma unique constraint violation
+      if (err.code === "P2002") {
+        return res.status(409).json({
+          error: "A query with this event and section already exists",
+        });
+      }
+      res.status(500).json({ error: "Internal server error" });
+    }
+  } catch (outerErr) {
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -129,8 +148,19 @@ router.delete("/:id", async (req, res) => {
 // Get logs (CheckResults) for a query
 router.get("/:id/logs", async (req, res) => {
   try {
+    const significantOnly = req.query.filter === "significant";
+
+    const where = { queryId: req.params.id };
+    if (significantOnly) {
+      where.OR = [
+        { status: "FOUND" },
+        { status: "ERROR" },
+        { priceExceeded: true },
+      ];
+    }
+
     const logs = await prisma.checkResult.findMany({
-      where: { queryId: req.params.id },
+      where,
       orderBy: { checkedAt: "desc" },
       take: 50,
     });

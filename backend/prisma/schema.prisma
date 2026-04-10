@@ -32,6 +32,8 @@ model Query {
   eventUrl          String
   section           String
   minSeats          Int          @default(1)
+  maxPrice          Int          @default(0)    // per-ticket ceiling in cents
+  orderNo           String       @default("")   // operational reference, not unique
 
   isActive          Boolean      @default(true)
 
@@ -41,8 +43,12 @@ model Query {
   // Son kontrol sonucu
   lastCheckedAt     DateTime?
   isAvailable       Boolean      @default(false)
+  foundPrice        Int?                         // last matched price in cents
+  priceExceeded     Boolean      @default(false) // true when tickets found but price > maxPrice
   lastErrorMessage  String?
   eventName         String?
+  eventLocation     String?                      // city/locality from LD+JSON
+  eventDate         String?                      // date portion of startDate
 
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
@@ -62,6 +68,8 @@ model CheckResult {
   checkedAt     DateTime      @default(now())
   status        QueryStatus
   isAvailable   Boolean
+  foundPrice    Int?                         // price snapshot at check time (cents)
+  priceExceeded Boolean       @default(false)
 
   eventName     String?
   httpStatus    Int?

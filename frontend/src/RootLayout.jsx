@@ -44,7 +44,7 @@ export function RootLayout() {
   }, []);
 
   return (
-    <main className=" h-screen w-full flex-col justify-center items-center">
+    <main className="min-h-screen w-full flex flex-col items-center">
       <HeaderSection />
       <MainSection queries={queries} onCardClick={handleCardClick} />
       {selectedQuery && (

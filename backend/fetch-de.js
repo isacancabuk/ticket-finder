@@ -37,7 +37,7 @@ function hasConsecutiveSeats(sortedSeats, n) {
   return false;
 }
 
-export async function fetchDE({ eventId, section, minSeats = 1 }) {
+export async function fetchDE({ eventId, section, minSeats = 1, maxPrice }) {
   const url = `https://availability.ticketmaster.de/api/v2/TM_DE/availability/${eventId}?subChannelId=1`;
 
   const start = Date.now();
@@ -69,50 +69,122 @@ export async function fetchDE({ eventId, section, minSeats = 1 }) {
       };
     }
 
-    // ── Section availability check (with consecutive seat logic) ──
+    // ── Build offers lookup map ────────────────────────────────
+    const offersMap = {};
+    if (Array.isArray(data.offers)) {
+      for (const offer of data.offers) {
+        if (offer.id) {
+          offersMap[offer.id] = offer;
+        }
+      }
+    }
+
+    // ── Three-stage matching: section → seats → price ─────────
     let isAvailable = false;
+    let foundPrice = null;
+    let priceExceeded = false;
+
+    // Track the cheapest matching price across all groups
+    let cheapestMatchingPrice = null;
 
     for (const g of data.groups) {
       const places = g.places || {};
+      const offerIds = g.offerIds || [];
 
-      // Find all section keys that end with `-${section}` (e.g., U-105, M-105, UW-105)
+      // Stage 1: Section match — find section keys ending with `-${section}`
       const matchingKeys = Object.keys(places).filter((k) => k.endsWith(`-${section}`));
+      if (matchingKeys.length === 0) continue;
 
-      // Check all matching section keys (safely handles multiple formats)
+      // Check if this group's section has any actual seats
+      let sectionHasSeats = false;
       for (const sectionKey of matchingKeys) {
         const rows = places[sectionKey];
         if (!rows) continue;
+        const hasAnySeat = Object.values(rows).some(
+          (seatsArr) => Array.isArray(seatsArr) && seatsArr.length > 0
+        );
+        if (hasAnySeat) {
+          sectionHasSeats = true;
+          break;
+        }
+      }
+      if (!sectionHasSeats) continue;
 
-        // If minSeats is 1, verify there is actually at least one seat present
-        if (minSeats <= 1) {
-          const hasAnySeat = Object.values(rows).some((seatsArr) => Array.isArray(seatsArr) && seatsArr.length > 0);
-          if (hasAnySeat) {
-            isAvailable = true;
-            break;
+      // Stage 2 & 3: Try offer-based matching first (has price info)
+      if (offerIds.length > 0) {
+        for (const offerId of offerIds) {
+          const offer = offersMap[offerId];
+          if (!offer) continue;
+
+          // Stage 2: Seat count check via quantities
+          const quantities = offer.quantities || [];
+          const seatsMatch = quantities.some((q) => q >= minSeats);
+          if (!seatsMatch) continue;
+
+          // We have section + seats — now check price
+          const offerPrice = offer.price?.total;
+          if (offerPrice == null) continue;
+
+          // Track cheapest price that matches section + seats
+          if (cheapestMatchingPrice === null || offerPrice < cheapestMatchingPrice) {
+            cheapestMatchingPrice = offerPrice;
           }
-        } else {
-          // Check each row for N consecutive seats
-          for (const rowId of Object.keys(rows)) {
-            const seats = (rows[rowId] || [])
-              .map(Number)
-              .filter((n) => !isNaN(n))
-              .sort((a, b) => a - b);
 
-            if (hasConsecutiveSeats(seats, minSeats)) {
+          // Stage 3: Price check
+          if (maxPrice != null && offerPrice <= maxPrice) {
+            isAvailable = true;
+            // Keep looking for even cheaper, but we already have a match
+          }
+        }
+      } else {
+        // Fallback: groups without offerIds — use legacy consecutive seat check
+        // These don't have price info, so skip price evaluation
+        for (const sectionKey of matchingKeys) {
+          const rows = places[sectionKey];
+          if (!rows) continue;
+
+          if (minSeats <= 1) {
+            const hasAnySeat = Object.values(rows).some(
+              (seatsArr) => Array.isArray(seatsArr) && seatsArr.length > 0
+            );
+            if (hasAnySeat) {
               isAvailable = true;
               break;
             }
+          } else {
+            for (const rowId of Object.keys(rows)) {
+              const seats = (rows[rowId] || [])
+                .map(Number)
+                .filter((n) => !isNaN(n))
+                .sort((a, b) => a - b);
+
+              if (hasConsecutiveSeats(seats, minSeats)) {
+                isAvailable = true;
+                break;
+              }
+            }
           }
+          if (isAvailable) break;
         }
-        if (isAvailable) break;
       }
 
       if (isAvailable) break;
     }
 
+    // Determine final price result
+    if (cheapestMatchingPrice !== null) {
+      foundPrice = cheapestMatchingPrice;
+      if (!isAvailable) {
+        // Section + seats matched but all prices exceeded maxPrice
+        priceExceeded = true;
+      }
+    }
+
     return {
       success: true,
       isAvailable,
+      foundPrice,
+      priceExceeded,
       eventName: data?.event?.name,
       latencyMs,
     };

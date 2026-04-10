@@ -19,6 +19,8 @@ async function rootAction({ request }) {
       url: formData.get("url"),
       section: formData.get("section"),
       minSeats: formData.get("minSeats") || "1",
+      maxPrice: formData.get("maxPrice"),
+      orderNo: formData.get("orderNo"),
     };
 
     const res = await apiFetch("/queries", {
