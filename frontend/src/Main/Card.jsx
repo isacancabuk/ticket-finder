@@ -83,7 +83,7 @@ export default function Card({ query, onClick }) {
 
         <div className="flex flex-col items-center">
           {orderNo && (
-            <p className={styles.orderNo}>{orderNo}</p>
+            <p className={styles.orderNo}>Order Number: {orderNo}</p>
           )}
           <span
             className={`fi fi-${countryCode} ${styles.flag}`}
@@ -96,14 +96,14 @@ export default function Card({ query, onClick }) {
             <p className={styles.eventMeta}>{metaLine}</p>
           )}
           <p className="text-2xl font-bold">{eventName || "Unknown Event"}</p>
-          <p className="text-lg text-gray-500 font-bold">{section}</p>
+          <p className="text-lg text-gray-500 font-bold">
+            Section: {section}{minSeats && minSeats > 1 ? ` x ${minSeats}` : ""}
+          </p>
         </div>
 
         <div className="flex flex-col items-center gap-1">
           <div className="flex flex-col items-center">
-            <p className="text-sm text-gray-500">
-              Min Koltuk: <span className="font-bold">{minSeats}</span>
-            </p>
+            <p className="text-sm text-gray-500">{"\u00A0"}</p>
           </div>
           <p className={`font-bold text-2xl ${styles.statusText}`}>
             {statusLabel}

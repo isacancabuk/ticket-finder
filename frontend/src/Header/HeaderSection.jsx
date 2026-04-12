@@ -29,6 +29,7 @@ const INPUTS = [
     type: "number",
     name: "maxPrice",
     placeholder: "Max. Fiyat",
+    required: false,
   },
 ];
 

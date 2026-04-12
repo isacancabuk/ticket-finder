@@ -18,8 +18,8 @@ router.post("/", async (req, res) => {
   try {
     const { url, section, minSeats, maxPrice, orderNo } = req.body;
 
-    if (!url || !section || !orderNo || maxPrice == null) {
-      return res.status(400).json({ error: "Missing required fields: url, section, orderNo, maxPrice" });
+    if (!url || !section || !orderNo) {
+      return res.status(400).json({ error: "Missing required fields: url, section, orderNo" });
     }
 
     // Validate minSeats if provided
@@ -29,11 +29,14 @@ router.post("/", async (req, res) => {
     }
 
     // Validate maxPrice (input is in EUR, stored as cents)
-    const price = parseInt(maxPrice, 10);
-    if (isNaN(price) || price < 1) {
-      return res.status(400).json({ error: "maxPrice must be a positive integer (in EUR, e.g. 200)" });
+    let maxPriceCents = 0;
+    if (maxPrice) {
+      const price = parseInt(maxPrice, 10);
+      if (isNaN(price) || price < 1) {
+        return res.status(400).json({ error: "maxPrice must be a positive integer (in EUR, e.g. 200)" });
+      }
+      maxPriceCents = price * 100;
     }
-    const maxPriceCents = price * 100;
 
     // Parse the Ticketmaster URL
     let parsed;
@@ -148,15 +151,17 @@ router.delete("/:id", async (req, res) => {
 // Get logs (CheckResults) for a query
 router.get("/:id/logs", async (req, res) => {
   try {
-    const significantOnly = req.query.filter === "significant";
+    const filter = req.query.filter;
 
     const where = { queryId: req.params.id };
-    if (significantOnly) {
+    if (filter === "significant") {
       where.OR = [
         { status: "FOUND" },
         { status: "ERROR" },
         { priceExceeded: true },
       ];
+    } else if (filter === "found") {
+      where.status = "FOUND";
     }
 
     const logs = await prisma.checkResult.findMany({

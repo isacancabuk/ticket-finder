@@ -131,7 +131,7 @@ export async function fetchDE({ eventId, section, minSeats = 1, maxPrice }) {
           }
 
           // Stage 3: Price check
-          if (maxPrice != null && offerPrice <= maxPrice) {
+          if (!maxPrice || offerPrice <= maxPrice) {
             isAvailable = true;
             // Keep looking for even cheaper, but we already have a match
           }

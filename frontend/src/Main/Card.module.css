@@ -62,7 +62,8 @@
 }
 
 .orderNo {
-    font-size: 18px;
+    text-align: center;
+    font-size: 14px;
     font-weight: 900;
     color: #555;
     letter-spacing: 0.3px;
