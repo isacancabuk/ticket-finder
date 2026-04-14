@@ -20,6 +20,7 @@ async function rootAction({ request }) {
       section: formData.get("section"),
       minSeats: formData.get("minSeats") || "1",
       maxPrice: formData.get("maxPrice"),
+      salePrice: formData.get("salePrice"),
       orderNo: formData.get("orderNo"),
     };
 
@@ -53,6 +54,33 @@ async function rootAction({ request }) {
     const id = formData.get("queryId");
     await apiFetch(`/queries/${id}`, { method: "DELETE" });
     return { ok: true, deleted: true };
+  }
+
+  if (intent === "purchase") {
+    const id = formData.get("queryId");
+    await apiFetch(`/queries/${id}/purchase`, { method: "PATCH" });
+    return { ok: true };
+  }
+
+  if (intent === "edit") {
+    const id = formData.get("queryId");
+    const body = {
+      section: formData.get("section"),
+      minSeats: formData.get("minSeats") || "1",
+      maxPrice: formData.get("maxPrice"),
+      salePrice: formData.get("salePrice"),
+      orderNo: formData.get("orderNo"),
+    };
+    const res = await apiFetch(`/queries/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "Unknown error" }));
+      return { error: err.error || "Failed to edit query" };
+    }
+    return { ok: true, edited: true };
   }
 
   return { error: "Unknown action" };

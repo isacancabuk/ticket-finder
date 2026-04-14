@@ -31,6 +31,12 @@ const INPUTS = [
     placeholder: "Max. Fiyat",
     required: false,
   },
+  {
+    type: "number",
+    name: "salePrice",
+    placeholder: "Satış Fiyatı",
+    required: false,
+  },
 ];
 
 export default function HeaderSection() {
@@ -50,11 +56,11 @@ export default function HeaderSection() {
       <Form
         ref={formRef}
         method="POST"
-        className="w-[1000px] grid grid-cols-4 gap-5"
+        className="w-[1000px] grid grid-cols-5 gap-5"
       >
         <input type="hidden" name="_action" value="create" />
         {INPUTS.map((input) => {
-          const colClass = input.name === "url" ? "col-span-3" : "col-span-1";
+          const colClass = input.name === "url" ? "col-span-4" : "col-span-1";
           return (
             <div key={input.name} className={colClass}>
               <Input

@@ -157,10 +157,18 @@ Cardlara Etkinlik isminin altina Etkinlik yeri ve saati eklemek adina bir gelist
             "offerTypeDescription": "Artist Presale | Stehplatz",
            
            -5130504851
+           1172459517"
 
            GOLD CIRCLE LINKS = I-GCL,I-GL
            GOLD CIRCLE RECHTS = I-GCR,I-GR
            INNENRAUM STEHPLATZ RECHTS = I-STR
            INNENRAUM STEHPLATZ LINKS = I-STL
            INNENRAUM STEHPLATZ = I-ST
+
+           GOLD CIRCLE 1 LINKS = I-PL
+           GOLD CIRCLE 1 RECHTS = I-PR
+           GOLD CIRCLE 2 LINKS = I-GCW
+           GOLD CIRCLE 2 RECHTS = I-GCO
+           
+           
            

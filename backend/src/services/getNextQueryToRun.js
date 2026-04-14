@@ -14,7 +14,7 @@ export async function getNextQueryToRun() {
   return prisma.query.findFirst({
     where: {
       status: {
-        not: "STOPPED",
+        notIn: ["STOPPED", "PURCHASED"],
       },
     },
     orderBy: [

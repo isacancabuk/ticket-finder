@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { url, section, minSeats, maxPrice, orderNo } = req.body;
+    const { url, section, minSeats, maxPrice, salePrice, orderNo } = req.body;
 
     if (!url || !section || !orderNo) {
       return res.status(400).json({ error: "Missing required fields: url, section, orderNo" });
@@ -36,6 +36,16 @@ router.post("/", async (req, res) => {
         return res.status(400).json({ error: "maxPrice must be a positive integer (in EUR, e.g. 200)" });
       }
       maxPriceCents = price * 100;
+    }
+
+    // Validate salePrice (optional, input is in EUR, stored as cents)
+    let salePriceCents = null;
+    if (salePrice) {
+      const price = parseInt(salePrice, 10);
+      if (isNaN(price) || price < 1) {
+        return res.status(400).json({ error: "salePrice must be a positive integer" });
+      }
+      salePriceCents = price * 100;
     }
 
     // Parse the Ticketmaster URL
@@ -63,6 +73,7 @@ router.post("/", async (req, res) => {
           section,
           minSeats: seats,
           maxPrice: maxPriceCents,
+          salePrice: salePriceCents,
           orderNo,
           eventLocation: metadata.eventLocation,
           eventDate: metadata.eventDate,
@@ -128,6 +139,67 @@ router.patch("/:id/resume", async (req, res) => {
   } catch (err) {
     if (err.code === "P2025") {
       return res.status(404).json({ error: "Query not found" });
+    }
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Purchase a query
+router.patch("/:id/purchase", async (req, res) => {
+  try {
+    const query = await prisma.query.update({
+      where: { id: req.params.id },
+      data: { status: "PURCHASED" },
+    });
+    res.json(query);
+  } catch (err) {
+    if (err.code === "P2025") {
+      return res.status(404).json({ error: "Query not found" });
+    }
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Edit a query
+router.patch("/:id", async (req, res) => {
+  try {
+    const { section, minSeats, maxPrice, salePrice, orderNo } = req.body;
+    
+    const updateData = {};
+    if (section !== undefined) updateData.section = section;
+    if (orderNo !== undefined) updateData.orderNo = orderNo;
+    
+    if (minSeats !== undefined) {
+      const parsedMin = parseInt(minSeats, 10);
+      if (!isNaN(parsedMin) && parsedMin >= 1) updateData.minSeats = parsedMin;
+    }
+    
+    if (maxPrice !== undefined) {
+      if (maxPrice) {
+        const parsedMax = parseInt(maxPrice, 10);
+        if (!isNaN(parsedMax) && parsedMax >= 0) updateData.maxPrice = parsedMax * 100;
+      } else {
+        updateData.maxPrice = 0;
+      }
+    }
+    
+    if (salePrice !== undefined) {
+      if (salePrice) {
+        const parsedSale = parseInt(salePrice, 10);
+        if (!isNaN(parsedSale) && parsedSale >= 0) updateData.salePrice = parsedSale * 100;
+      } else {
+        updateData.salePrice = null;
+      }
+    }
+    
+    const query = await prisma.query.update({
+      where: { id: req.params.id },
+      data: updateData
+    });
+    res.json(query);
+  } catch (err) {
+    if (err.code === "P2002") {
+      return res.status(409).json({ error: "A query with this event and section already exists" });
     }
     res.status(500).json({ error: "Internal server error" });
   }

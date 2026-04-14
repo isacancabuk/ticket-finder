@@ -19,6 +19,7 @@ enum QueryStatus {
   FINDING   // bakılıyor, bilet yok
   FOUND     // bilet bulundu (isAvailable = true)
   STOPPED   // manuel durduruldu
+  PURCHASED // frontend purchased status
   ERROR     // teknik hata
 }
 
@@ -33,6 +34,7 @@ model Query {
   section           String
   minSeats          Int          @default(1)
   maxPrice          Int          @default(0)    // per-ticket ceiling in cents
+  salePrice         Int?         // per-ticket sale price in cents
   orderNo           String       @default("")   // operational reference, not unique
 
   isActive          Boolean      @default(true)

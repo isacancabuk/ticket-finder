@@ -12,6 +12,7 @@ function formatPrice(cents, domain) {
 }
 
 function getDisplayStatus(query) {
+  if (query.status === "PURCHASED") return "purchased";
   if (query.status === "FOUND") return "found";
   if (query.status === "STOPPED") return "stopped";
   if (query.status === "ERROR") return "error";
@@ -24,6 +25,7 @@ const STATUS_LABELS = {
   finding: "ARANIYOR",
   found: "BULUNDU",
   stopped: "DURDURULDU",
+  purchased: "ALINDI",
   error: "HATA",
   price_exceeded: "FİYAT AŞILDI",
 };
@@ -41,6 +43,7 @@ export default function Card({ query, onClick }) {
     eventLocation,
     eventDate,
     foundPrice,
+    salePrice,
   } = query;
   const site = "TicketMaster";
   const imgUrl = new URL(`../assets/${site}.png`, import.meta.url).href;
@@ -62,6 +65,18 @@ export default function Card({ query, onClick }) {
   }
   const metaParts = [eventLocation, formattedDate].filter(Boolean);
   const metaLine = metaParts.length > 0 ? metaParts.join(" • ") : null;
+
+  let profitLossLine = null;
+  if ((displayStatus === "found" || displayStatus === "price_exceeded" || displayStatus === "purchased") && foundPrice != null && salePrice != null) {
+    const diff = salePrice - foundPrice;
+    if (diff > 0) {
+      profitLossLine = <span className="text-green-600 font-bold">, {formatPrice(diff, domain)} profit</span>;
+    } else if (diff < 0) {
+      profitLossLine = <span className="text-red-500 font-bold">, {formatPrice(Math.abs(diff), domain)} loss</span>;
+    } else {
+      profitLossLine = <span className="text-gray-500 font-bold">, 0 profit</span>;
+    }
+  }
 
   const handleLinkClick = (e) => {
     // URL'ye tıklarken modalın açılmasını engeller
@@ -103,15 +118,22 @@ export default function Card({ query, onClick }) {
 
         <div className="flex flex-col items-center gap-1">
           <div className="flex flex-col items-center">
-            <p className="text-sm text-gray-500">{"\u00A0"}</p>
+            <p className="text-sm font-bold text-gray-700">
+              {salePrice != null ? `${formatPrice(salePrice, domain)} sale price` : "\u00A0"}
+            </p>
           </div>
           <p className={`font-bold text-2xl ${styles.statusText}`}>
             {statusLabel}
           </p>
           <p className={styles.priceInfo}>
-            {displayStatus === "price_exceeded" && foundPrice != null
-              ? `${formatPrice(foundPrice, domain)} bulundu`
-              : "\u00A0"}
+            {(displayStatus === "found" || displayStatus === "price_exceeded" || displayStatus === "purchased") && foundPrice != null ? (
+              <>
+                <span>{formatPrice(foundPrice, domain)} bulundu</span>
+                {profitLossLine}
+              </>
+            ) : (
+              "\u00A0"
+            )}
           </p>
           {status === "ERROR" && lastErrorMessage && (
             <p className={styles.errorMessage}>{lastErrorMessage}</p>
