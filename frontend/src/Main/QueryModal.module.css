@@ -326,3 +326,98 @@
     white-space: nowrap;
     color: #cc4400;
 }
+
+/* Edit form */
+.editForm {
+    margin-bottom: 20px;
+}
+
+.editGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+    margin-bottom: 16px;
+}
+
+.editField {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.editLabel {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #999;
+    font-weight: 600;
+}
+
+.editInput {
+    font-size: 14px;
+    padding: 9px 12px;
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    background: #fff;
+    color: #333;
+    font-weight: 500;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.editInput:focus {
+    border-color: #305bce;
+    box-shadow: 0 0 0 3px rgba(48, 91, 206, 0.1);
+}
+
+.editActions {
+    display: flex;
+    gap: 10px;
+}
+
+.editSaveBtn {
+    flex: 1;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: #305bce;
+    color: #fff;
+    transition: filter 0.2s ease, transform 0.1s ease;
+}
+
+.editSaveBtn:hover:not(:disabled) {
+    filter: brightness(1.1);
+}
+
+.editSaveBtn:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+.editSaveBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.editCancelBtn {
+    flex: 1;
+    padding: 10px 20px;
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: #f0f0f0;
+    color: #666;
+    transition: filter 0.2s ease, transform 0.1s ease;
+}
+
+.editCancelBtn:hover:not(:disabled) {
+    background-color: #e5e5e5;
+}
+
+.editCancelBtn:active:not(:disabled) {
+    transform: scale(0.97);
+}

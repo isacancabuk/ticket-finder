@@ -3,8 +3,47 @@ import prisma from "../prisma.js";
 import { parseTicketmasterUrl } from "../utils/parseTicketmasterUrl.js";
 import { fetchEventMetadata } from "../utils/fetchEventMetadata.js";
 import { runQuery } from "../services/runQuery.js";
+import { fetchDEManifestSections } from "../../fetchDEManifestSections.js";
 
 const router = express.Router();
+
+// ── Manifest sections helper (must be before /:id routes) ────
+router.get("/manifest-sections", async (req, res) => {
+  try {
+    const { url } = req.query;
+
+    if (!url) {
+      return res.status(400).json({ error: "Missing required query param: url" });
+    }
+
+    let parsed;
+    try {
+      parsed = parseTicketmasterUrl(url);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+
+    if (parsed.domain !== "DE") {
+      return res.status(400).json({
+        error: `Manifest sections helper is only supported for DE domain, got: ${parsed.domain}`,
+      });
+    }
+
+    const result = await fetchDEManifestSections({
+      eventId: parsed.eventId,
+      domain: "de",
+    });
+
+    if (!result.success) {
+      return res.status(502).json({ error: result.error });
+    }
+
+    res.json({ sections: result.sections });
+  } catch (err) {
+    console.error("[manifest-sections] Unexpected error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 router.get("/", async (req, res) => {
   const queries = await prisma.query.findMany({
@@ -18,9 +57,12 @@ router.post("/", async (req, res) => {
   try {
     const { url, section, minSeats, maxPrice, salePrice, orderNo } = req.body;
 
-    if (!url || !section || !orderNo) {
-      return res.status(400).json({ error: "Missing required fields: url, section, orderNo" });
+    if (!url || !orderNo) {
+      return res.status(400).json({ error: "Missing required fields: url, orderNo" });
     }
+
+    // Section: trim to null if empty (broad availability mode)
+    const sectionValue = section?.trim() || null;
 
     // Validate minSeats if provided
     const seats = minSeats ? parseInt(minSeats, 10) : 1;
@@ -28,8 +70,8 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "minSeats must be a positive integer" });
     }
 
-    // Validate maxPrice (input is in EUR, stored as cents)
-    let maxPriceCents = 0;
+    // Validate maxPrice (input is in EUR, stored as cents, null = no limit)
+    let maxPriceCents = null;
     if (maxPrice) {
       const price = parseInt(maxPrice, 10);
       if (isNaN(price) || price < 1) {
@@ -70,7 +112,7 @@ router.post("/", async (req, res) => {
           eventSlug,
           eventName,
           eventUrl,
-          section,
+          section: sectionValue,
           minSeats: seats,
           maxPrice: maxPriceCents,
           salePrice: salePriceCents,
@@ -82,12 +124,6 @@ router.post("/", async (req, res) => {
 
       res.status(201).json(query);
     } catch (err) {
-      // Prisma unique constraint violation
-      if (err.code === "P2002") {
-        return res.status(409).json({
-          error: "A query with this event and section already exists",
-        });
-      }
       res.status(500).json({ error: "Internal server error" });
     }
   } catch (outerErr) {
@@ -166,7 +202,7 @@ router.patch("/:id", async (req, res) => {
     const { section, minSeats, maxPrice, salePrice, orderNo } = req.body;
     
     const updateData = {};
-    if (section !== undefined) updateData.section = section;
+    if (section !== undefined) updateData.section = section?.trim() || null;
     if (orderNo !== undefined) updateData.orderNo = orderNo;
     
     if (minSeats !== undefined) {
@@ -179,7 +215,7 @@ router.patch("/:id", async (req, res) => {
         const parsedMax = parseInt(maxPrice, 10);
         if (!isNaN(parsedMax) && parsedMax >= 0) updateData.maxPrice = parsedMax * 100;
       } else {
-        updateData.maxPrice = 0;
+        updateData.maxPrice = null;
       }
     }
     
@@ -198,9 +234,6 @@ router.patch("/:id", async (req, res) => {
     });
     res.json(query);
   } catch (err) {
-    if (err.code === "P2002") {
-      return res.status(409).json({ error: "A query with this event and section already exists" });
-    }
     res.status(500).json({ error: "Internal server error" });
   }
 });

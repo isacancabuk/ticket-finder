@@ -33,7 +33,7 @@ export async function runQuery(queryId) {
     if (query.domain === "DE") {
       result = await fetchDE({
         eventId: query.eventId,
-        section: query.section,
+        section: query.section || null,
         minSeats: query.minSeats || 1,
         maxPrice: query.maxPrice,
       });

@@ -84,6 +84,9 @@ export async function fetchDE({ eventId, section, minSeats = 1, maxPrice }) {
     let foundPrice = null;
     let priceExceeded = false;
 
+    // Broad mode: when section is null, match ANY section (broad availability check)
+    const isBroadMode = !section;
+
     // Track the cheapest matching price across all groups
     let cheapestMatchingPrice = null;
 
@@ -91,8 +94,10 @@ export async function fetchDE({ eventId, section, minSeats = 1, maxPrice }) {
       const places = g.places || {};
       const offerIds = g.offerIds || [];
 
-      // Stage 1: Section match — find section keys ending with `-${section}`
-      const matchingKeys = Object.keys(places).filter((k) => k.endsWith(`-${section}`));
+      // Stage 1: Section match — find section keys ending with `-${section}` (or all keys in broad mode)
+      const matchingKeys = isBroadMode
+        ? Object.keys(places)
+        : Object.keys(places).filter((k) => k.endsWith(`-${section}`));
       if (matchingKeys.length === 0) continue;
 
       // Check if this group's section has any actual seats
@@ -169,6 +174,58 @@ export async function fetchDE({ eventId, section, minSeats = 1, maxPrice }) {
       }
 
       if (isAvailable) break;
+    }
+
+    // ── Floor / General-Admission fallback ─────────────────────
+    // Only runs if the places-based loop above found nothing.
+    // Checks groups[].sections (object with keys like "I-STR")
+    // using the same suffix-based matching philosophy.
+    // minSeats is effectively 1 for floor/GA sections.
+    // Uses "first matching group" heuristic for offerIds.
+    if (!isAvailable && cheapestMatchingPrice === null) {
+      for (const g of data.groups) {
+        const sections = g.sections || {};
+        const offerIds = g.offerIds || [];
+
+        // Same suffix-based matching: key ends with `-${section}` (or all keys in broad mode)
+        const matchingKeys = isBroadMode
+          ? Object.keys(sections)
+          : Object.keys(sections).filter((k) =>
+              k.endsWith(`-${section}`)
+            );
+        if (matchingKeys.length === 0) continue;
+
+        // Floor section matched — evaluate prices via this group's offerIds
+        if (offerIds.length > 0) {
+          for (const offerId of offerIds) {
+            const offer = offersMap[offerId];
+            if (!offer) continue;
+
+            const offerPrice = offer.price?.total;
+            if (offerPrice == null) continue;
+
+            // Track first matching price (first-match heuristic)
+            if (cheapestMatchingPrice === null) {
+              cheapestMatchingPrice = offerPrice;
+            }
+
+            // Price check
+            if (!maxPrice || offerPrice <= maxPrice) {
+              isAvailable = true;
+              if (cheapestMatchingPrice === null || offerPrice < cheapestMatchingPrice) {
+                cheapestMatchingPrice = offerPrice;
+              }
+              break;
+            }
+          }
+        } else {
+          // Floor group without offerIds — mark as available without price info
+          isAvailable = true;
+        }
+
+        // First-match heuristic: stop after the first matching group
+        break;
+      }
     }
 
     // Determine final price result

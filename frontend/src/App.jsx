@@ -17,10 +17,10 @@ async function rootAction({ request }) {
   if (intent === "create") {
     const body = {
       url: formData.get("url"),
-      section: formData.get("section"),
+      section: formData.get("section") || "",
       minSeats: formData.get("minSeats") || "1",
-      maxPrice: formData.get("maxPrice"),
-      salePrice: formData.get("salePrice"),
+      maxPrice: formData.get("maxPrice") || "",
+      salePrice: formData.get("salePrice") || "",
       orderNo: formData.get("orderNo"),
     };
 

@@ -111,38 +111,38 @@ export default function QueryModal({ query, onClose }) {
 
         {/* Query Info or Edit Form */}
         {isEditing ? (
-          <fetcher.Form method="POST" className={styles.infoGrid} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+          <fetcher.Form method="POST" className={styles.editForm}>
             <input type="hidden" name="_action" value="edit" />
             <input type="hidden" name="queryId" value={query.id} />
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="flex flex-col">
-                <label className="text-xs mb-1 font-bold text-gray-600">Order Number</label>
-                <input type="text" name="orderNo" defaultValue={query.orderNo} className="border p-2 rounded" />
+            <div className={styles.editGrid}>
+              <div className={styles.editField}>
+                <label className={styles.editLabel}>Order Number</label>
+                <input type="text" name="orderNo" defaultValue={query.orderNo} className={styles.editInput} />
               </div>
-              <div className="flex flex-col">
-                <label className="text-xs mb-1 font-bold text-gray-600">Section</label>
-                <input type="text" name="section" defaultValue={query.section} className="border p-2 rounded" />
+              <div className={styles.editField}>
+                <label className={styles.editLabel}>Section</label>
+                <input type="text" name="section" defaultValue={query.section} className={styles.editInput} />
               </div>
-              <div className="flex flex-col">
-                <label className="text-xs mb-1 font-bold text-gray-600">Min. Koltuk</label>
-                <input type="number" name="minSeats" defaultValue={query.minSeats} className="border p-2 rounded" />
+              <div className={styles.editField}>
+                <label className={styles.editLabel}>Min. Koltuk</label>
+                <input type="number" name="minSeats" defaultValue={query.minSeats} className={styles.editInput} />
               </div>
-              <div className="flex flex-col">
-                <label className="text-xs mb-1 font-bold text-gray-600">Max. Fiyat (€/£)</label>
-                <input type="number" name="maxPrice" defaultValue={query.maxPrice ? query.maxPrice / 100 : ""} className="border p-2 rounded" />
+              <div className={styles.editField}>
+                <label className={styles.editLabel}>Max. Fiyat</label>
+                <input type="number" name="maxPrice" defaultValue={query.maxPrice ? query.maxPrice / 100 : ""} className={styles.editInput} />
               </div>
-              <div className="flex flex-col">
-                <label className="text-xs mb-1 font-bold text-gray-600">Satış Fiyatı (€/£)</label>
-                <input type="number" name="salePrice" defaultValue={query.salePrice ? query.salePrice / 100 : ""} className="border p-2 rounded" />
+              <div className={styles.editField}>
+                <label className={styles.editLabel}>Satış Fiyatı</label>
+                <input type="number" name="salePrice" defaultValue={query.salePrice ? query.salePrice / 100 : ""} className={styles.editInput} />
               </div>
             </div>
 
-            <div className="flex gap-2 mt-2">
-              <button type="submit" disabled={isBusy} className="bg-blue-600 text-white font-bold py-2 px-4 rounded w-full">
+            <div className={styles.editActions}>
+              <button type="submit" disabled={isBusy} className={styles.editSaveBtn}>
                 {isBusy ? "Kaydediliyor..." : "Kaydet"}
               </button>
-              <button type="button" onClick={() => setIsEditing(false)} className="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded w-full">
+              <button type="button" onClick={() => setIsEditing(false)} className={styles.editCancelBtn}>
                 İptal
               </button>
             </div>
@@ -159,7 +159,7 @@ export default function QueryModal({ query, onClose }) {
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Section</span>
-              <span className={styles.infoValue}>{query.section}</span>
+              <span className={styles.infoValue}>{query.section || "Tümü (Genel)"}</span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Min. Koltuk</span>

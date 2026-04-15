@@ -29,7 +29,7 @@ export function startScheduler() {
 
       console.log(
         `[scheduler] Running query ${query.id} ` +
-          `(domain=${query.domain} event=${query.eventId} section=${query.section})`
+          `(domain=${query.domain} event=${query.eventId} section=${query.section || "ALL"})`
       );
 
       const result = await runQuery(query.id);

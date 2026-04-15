@@ -31,9 +31,9 @@ model Query {
   eventId           String
   eventSlug         String?
   eventUrl          String
-  section           String
+  section           String?                     // null = broad availability check (any section)
   minSeats          Int          @default(1)
-  maxPrice          Int          @default(0)    // per-ticket ceiling in cents
+  maxPrice          Int?                        // per-ticket ceiling in cents, null = no limit
   salePrice         Int?         // per-ticket sale price in cents
   orderNo           String       @default("")   // operational reference, not unique
 
@@ -58,7 +58,7 @@ model Query {
   // Log ilişkisi
   results           CheckResult[]
 
-  @@unique([site, domain, eventId, section])
+  // Unique constraint removed to allow multiple queries for same event+section
 }
 
 model CheckResult {

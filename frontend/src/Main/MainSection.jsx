@@ -20,12 +20,12 @@ const SORT_PRIORITY = {
 };
 
 const FILTER_OPTIONS = [
-  { label: "All", value: "ALL" },
-  { label: "Found", value: "FOUND" },
-  { label: "Price Exceeded", value: "PRICE_EXCEEDED" },
-  { label: "Finding", value: "FINDING" },
-  { label: "Error", value: "ERROR" },
-  { label: "Purchased", value: "PURCHASED" },
+  { label: "Tümü", value: "ALL" },
+  { label: "Bulundu", value: "FOUND" },
+  { label: "Fiyat Aşıldı", value: "PRICE_EXCEEDED" },
+  { label: "Aranıyor", value: "FINDING" },
+  { label: "Hata", value: "ERROR" },
+  { label: "Alındı", value: "PURCHASED" },
 ];
 
 export default function MainSection({ queries = [], onCardClick }) {
@@ -53,20 +53,47 @@ export default function MainSection({ queries = [], onCardClick }) {
 
   return (
     <div className="flex flex-col items-center w-full pb-20">
-      <div className="flex gap-1 mb-8 bg-gray-200 p-1 rounded-lg">
-        {FILTER_OPTIONS.map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => setFilter(opt.value)}
-            className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wide rounded-md transition-all ${
-              filter === opt.value
-                ? "bg-white text-blue-600 shadow-sm"
-                : "text-gray-500 hover:text-gray-800"
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          marginBottom: "32px",
+          background: "#eaeaea",
+          border: "1px solid #d4d4d4",
+          borderRadius: "10px",
+          padding: "6px 8px 6px 16px",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "11px",
+            fontWeight: 700,
+            color: "#888",
+            textTransform: "uppercase",
+            letterSpacing: "0.6px",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Filtre
+        </span>
+        <div style={{ width: "1px", height: "20px", background: "#ccc" }} />
+        <div className="flex gap-1 bg-gray-200 p-1 rounded-lg">
+          {FILTER_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setFilter(opt.value)}
+              className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wide rounded-md transition-all ${
+                filter === opt.value
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-col items-center">

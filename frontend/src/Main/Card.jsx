@@ -1,3 +1,4 @@
+import { useState } from "react";
 import styles from "./Card.module.css";
 import "/node_modules/flag-icons/css/flag-icons.min.css";
 
@@ -70,17 +71,28 @@ export default function Card({ query, onClick }) {
   if ((displayStatus === "found" || displayStatus === "price_exceeded" || displayStatus === "purchased") && foundPrice != null && salePrice != null) {
     const diff = salePrice - foundPrice;
     if (diff > 0) {
-      profitLossLine = <span className="text-green-600 font-bold">, {formatPrice(diff, domain)} profit</span>;
+      profitLossLine = <span className="text-green-600 font-bold">, {formatPrice(diff, domain)} kâr</span>;
     } else if (diff < 0) {
-      profitLossLine = <span className="text-red-500 font-bold">, {formatPrice(Math.abs(diff), domain)} loss</span>;
+      profitLossLine = <span className="text-red-500 font-bold">, {formatPrice(Math.abs(diff), domain)} zarar</span>;
     } else {
-      profitLossLine = <span className="text-gray-500 font-bold">, 0 profit</span>;
+      profitLossLine = <span className="text-gray-500 font-bold">, 0 kâr</span>;
     }
   }
 
   const handleLinkClick = (e) => {
     // URL'ye tıklarken modalın açılmasını engeller
     e.stopPropagation();
+  };
+
+  const [copied, setCopied] = useState(false);
+
+  const handleOrderNoClick = (e) => {
+    e.stopPropagation();
+    if (orderNo) {
+      navigator.clipboard.writeText(orderNo).catch(() => {});
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }
   };
 
   return (
@@ -98,7 +110,17 @@ export default function Card({ query, onClick }) {
 
         <div className="flex flex-col items-center">
           {orderNo && (
-            <p className={styles.orderNo}>Order Number: {orderNo}</p>
+            <p
+              className={styles.orderNo}
+              onClick={handleOrderNoClick}
+              title="Kopyalamak için tıkla"
+              style={{ cursor: "copy", position: "relative" }}
+            >
+              Order Number: {orderNo}
+              {copied && (
+                <span className={styles.copiedToast}>Kopyalandı!</span>
+              )}
+            </p>
           )}
           <span
             className={`fi fi-${countryCode} ${styles.flag}`}
@@ -112,14 +134,14 @@ export default function Card({ query, onClick }) {
           )}
           <p className="text-2xl font-bold">{eventName || "Unknown Event"}</p>
           <p className="text-lg text-gray-500 font-bold">
-            Section: {section}{minSeats && minSeats > 1 ? ` x ${minSeats}` : ""}
+            Section: {section || "Tümü"}{minSeats && minSeats > 1 ? ` x ${minSeats}` : ""}
           </p>
         </div>
 
         <div className="flex flex-col items-center gap-1">
           <div className="flex flex-col items-center">
             <p className="text-sm font-bold text-gray-700">
-              {salePrice != null ? `${formatPrice(salePrice, domain)} sale price` : "\u00A0"}
+              {salePrice != null ? `${formatPrice(salePrice, domain)} satış fiyatı` : "\u00A0"}
             </p>
           </div>
           <p className={`font-bold text-2xl ${styles.statusText}`}>
