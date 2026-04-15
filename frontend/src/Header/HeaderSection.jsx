@@ -239,7 +239,7 @@ export default function HeaderSection() {
                   textAlign: "center",
                   letterSpacing: "0.2px",
                 }}>
-                  Tüm arama için: 1
+                  Tüm ve Floor arama için: 1
                 </p>
               )}
               {input.name === "maxPrice" && (
