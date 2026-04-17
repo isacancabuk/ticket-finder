@@ -178,10 +178,12 @@ router.post("/", async (req, res) => {
 
       res.status(201).json(query);
     } catch (err) {
-      res.status(500).json({ error: "Internal server error" });
+      console.error("[POST /] prisma.query.create error:", err);
+      res.status(500).json({ error: `Database error: ${err.message}` });
     }
   } catch (outerErr) {
-    res.status(500).json({ error: "Internal server error" });
+    console.error("[POST /] outer error:", outerErr);
+    res.status(500).json({ error: `Server error: ${outerErr.message}` });
   }
 });
 
