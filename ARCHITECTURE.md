@@ -26,10 +26,11 @@ A `Query` represents a user's intent to watch a specific event for matching tick
 
 It is critical to distinguish between the different price variables in the system:
 
-- **Found Ticket Price (`foundPrice`):** The actual dynamic cost of the ticket extracted from the Ticketmaster API response.
-- **Max Price (`maxPrice`):** Optional user constraint. If the `foundPrice` is higher than `maxPrice`, the system treats the ticket as "exceeded" and skips the notification.
+- **Found Ticket Price (`foundPrice`):** The actual dynamic cost of the ticket extracted from the Ticketmaster API response. Its currency is implicitly derived from the domain (e.g., DE = EUR, UK = GBP).
+- **Max Price (`maxPrice`):** Optional user constraint used by the scraper. If the `foundPrice` is higher than `maxPrice`, the system treats the ticket as "exceeded". This value is always evaluated in the domain's native currency.
 - **Sale Price (`salePrice`):** Conceptually a business decision field inputted by the user. It represents the intended downstream resale value of the ticket.
-- **Profit/Loss:** A purely derived calculation performed right before UI render or Telegram message sending (`Profit = salePrice - foundPrice`). It is not stored natively in the database.
+- **Sale Price Currency (`salePriceCurrency`):** Explicitly stores the currency of the intended resale (e.g., EUR, GBP, USD). This may differ from the ticket's found native currency.
+- **Profit/Loss:** A purely derived calculation performed right before UI render or Telegram message sending. It is not stored natively in the database. If currencies match, it's `salePrice - foundPrice`. If they differ, the backend fetches FX rates.
 
 ## Scheduler Behavior
 
@@ -58,19 +59,16 @@ The frontend relies on combinations of fields to render a derived "Display Statu
 
 ---
 
-## 🔮 Upcoming Currency Challenge (Design Pending)
+## 💱 Multi-Currency & FX Architecture
 
-The architecture is currently operating under the tacit assumption that **everything is priced in EUR** because `fetchDE` is the only active scraper. However, as the system grows, we face a major architectural shift:
+Because Ticketmaster domains span multiple currencies (e.g., TM DE in EUR, TM UK in GBP) while a reseller's downstream marketplace might use a different currency, the architecture decouple prices from explicit single currencies:
 
-### The Problems
-1. **Multi-Currency Found Prices:** Future scrapers (e.g. `TM_UK`, `TM_US`) will return `foundPrice` in GBP or USD.
-2. **Disconnected Sale Price Currency:** A user might intend to resell a Ticketmaster UK ticket (found in GBP) on a European marketplace (priced in EUR). `salePrice` may not share the currency of `foundPrice`.
-3. **Complex Profit/Loss Calculation:** We can no longer do a simple `salePrice - foundPrice` subtraction if the currencies do not match.
-
-### Design Direction (Proposed Implementation)
-We are gathering requirements for an FX/Currency feature. The likely direction includes:
-- **Base Currency:** Introducing a global standard (likely `EUR`), ensuring all system-wide profit calculations resolve to a single understandable metric.
-- **Schema Separation:** Decoupling amount from context (e.g. adding `salePriceCurrency` Enum).
-- **Exchange Rate Provider:** Integrating a transparent FX provider abstraction. **Frankfurter** is the current leading candidate for open-source, background-syncable daily exchange rates. 
-
-*(Note: These currency/FX concepts are currently in the discussion phase. They are NOT yet implemented as of this document's writing.)*
+### Design Implementation
+- **Schema Separation:** The system explicitly tracks the intended currency of the sale via `salePriceCurrency`. `maxPrice` is an operational constraint running natively against the domain API without FX processing.
+- **Base/Target Currency Maps:** A constant mapping `DOMAIN_CURRENCY` dictates the expected currency format of `foundPrice` per provider/region.
+- **Exchange Rate Engine:**
+  - Integrated via `fxService.js`, the platform pulls daily rates from the **Frankfurter** open-source API.
+  - The provider is abstracted gracefully to fallback against failures, maintaining a 24-hour cache (TTL).
+- **Asymmetric Rendering:**
+  - Front-end fetches rely on the Backend `runQuery` or REST `GET` routes (`query.routes.js`) enriching queried tickets with calculated `profitLoss` and `profitLossCurrency` before browser presentation.
+  - Telegram messages process cross-currency margins dynamically before dispatch.

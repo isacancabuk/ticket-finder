@@ -42,6 +42,12 @@ const INPUTS = [
   },
 ];
 
+const CURRENCY_OPTIONS = [
+  { code: "EUR" },
+  { code: "GBP" },
+  { code: "USD" },
+];
+
 export default function HeaderSection() {
   const actionData = useActionData();
   const navigation = useNavigation();
@@ -222,7 +228,7 @@ export default function HeaderSection() {
           </p>
         </div>
 
-        {INPUTS.filter((i) => ["minSeats", "maxPrice", "salePrice"].includes(i.name)).map(
+        {INPUTS.filter((i) => ["minSeats", "maxPrice"].includes(i.name)).map(
           (input) => (
             <div key={input.name} className="col-span-1">
               <Input
@@ -256,6 +262,44 @@ export default function HeaderSection() {
             </div>
           )
         )}
+
+        {/* Sale Price + Currency Picker */}
+        <div className="col-span-1">
+          <div style={{ display: "flex", gap: "6px", alignItems: "stretch" }}>
+            <div style={{ flex: 1 }}>
+              <Input
+                type="number"
+                name="salePrice"
+                placeholder="Satış Fiyatı"
+                required={false}
+              />
+            </div>
+            <select
+              name="salePriceCurrency"
+              defaultValue="EUR"
+              style={{
+                width: "52px",
+                padding: "0",
+                borderRadius: "10px",
+                border: "2px solid rgb(200, 200, 200)",
+                backgroundColor: "transparent",
+                color: "inherit",
+                fontSize: "13px",
+                fontWeight: "600",
+                fontFamily: "'Segoe UI', sans-serif",
+                cursor: "pointer",
+                textAlign: "center",
+                outline: "none",
+                appearance: "none",
+                WebkitAppearance: "none",
+              }}
+            >
+              {CURRENCY_OPTIONS.map((c) => (
+                <option key={c.code} value={c.code}>{c.code}</option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         <div className="col-span-1 flex">
           <Button disabled={isSubmitting} className="w-full h-[52px]">

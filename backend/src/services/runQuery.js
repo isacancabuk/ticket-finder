@@ -1,5 +1,6 @@
 import prisma from "../prisma.js";
 import { fetchDE } from "../../fetch-de.js";
+import { fetchES } from "../../fetch-es.js";
 // UK varsa import edilecek
 
 export async function runQuery(queryId) {
@@ -32,6 +33,13 @@ export async function runQuery(queryId) {
   try {
     if (query.domain === "DE") {
       result = await fetchDE({
+        eventId: query.eventId,
+        section: query.section || null,
+        minSeats: query.minSeats || 1,
+        maxPrice: query.maxPrice,
+      });
+    } else if (query.domain === "ES") {
+      result = await fetchES({
         eventId: query.eventId,
         section: query.section || null,
         minSeats: query.minSeats || 1,

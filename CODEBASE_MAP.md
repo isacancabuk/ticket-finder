@@ -23,15 +23,16 @@ The backend is a Node.js Express server structured around Prisma ORM.
 - `prisma/schema.prisma` - The central database schema file. Defines the `Query` and `CheckResult` models, as well as enums like `QueryStatus`. **Migrations/Schema state live here.** (Note: `@@unique` constraints have been recently dropped to allow multiple identical queries).
 
 ### API Routes (`/backend/src/routes`)
-- `query.routes.js` - Defines all REST endpoints (`GET /`, `POST /`, `PATCH /:id`, `DELETE /:id`, `PATCH /:id/stop`, etc.). Handles request validation, HTTP responses, and database interactions for query CRUD operations. Log filtering logic (`GET /:id/logs`) is here.
+- `query.routes.js` - Defines all REST endpoints (`GET /`, `POST /`, `PATCH /:id`, `DELETE /:id`, `PATCH /:id/stop`, etc.). Handles request validation, HTTP responses, database interactions, and **enriches the `GET` response with FX-converted profit/loss metrics** using the `fxService`. Log filtering logic (`GET /:id/logs`) is here.
 
 ### Services (`/backend/src/services`)
 Centralized business logic for processing queries.
 - `runQuery.js` - The primary availability check boundary. Updates database status to `FINDING`, calls the scraper/checker logic (`fetchDE`), handles errors, and records metrics to `CheckResult`.
 - `getNextQueryToRun.js` - Database query logic used by the scheduler to pick the next `Query` for checking (round-robin style or skipping over checked items).
+- `fxService.js` - Exchange rate provider abstraction wrapping the **Frankfurter API**. Maintains an in-memory 24-hour cache of daily ECB rates and exposes conversion utilities.
 - `sendTelegramMessage.js` - Low-level API call to Telegram bot.
 - `buildNotificationDecision.js` - Decides whether a status change warrants a notification.
-- `buildTelegramMessage.js` - Formats the payload text/markdown sent to Telegram. Fully localized in Turkish, includes calculated profit/loss.
+- `buildTelegramMessage.js` - Formats the payload text/markdown sent to Telegram. Fully localized in Turkish, includes asynchronous cross-currency FX calculated profit/loss.
 
 ### Scheduler (`/backend/src/scheduler`)
 - `startScheduler.js` - The check loop implementation. Uses `setInterval` to run one query per minute. Calls `getNextQueryToRun()`, `runQuery()`, and notification services sequentially.
@@ -45,6 +46,7 @@ These scripts perform the actual external API requests.
 - `fetchEventMetadata.js` - Extracts event date/location from Ticketmaster LD+JSON metadata when a URL is first submitted.
 - `parseTicketmasterUrl.js` - Converts raw Ticketmaster URLs into Domain, Event ID, and Event Slug.
 - `normalizeError.js` - Translates raw axios/network errors into structured error types for logs and UI.
+- `currencyConfig.js` - Centralizes domain-to-currency mappings (`DOMAIN_CURRENCY`), localized currency symbols (`CURRENCY_SYMBOLS`), and valid `salePriceCurrency` option parsing.
 
 ---
 
@@ -71,11 +73,9 @@ Handles displaying cards, sorting, and user interaction modals.
 
 ---
 
-## Planned Future Extension Points (Currency/FX Architecture)
+## Currency & FX Architecture
 
-We are planning a multi-currency upgrade. When implementing FX conversions and multi-currency pricing, expect to scaffold new structures here:
-
-- **`backend/src/services/currencyService.js` (Proposed):** Likely location for an exchange rate abstraction provider (e.g., fetching open-source rates from `Frankfurter`).
-- **`backend/src/cron/fetchRates.js` (Proposed):** Potential background job to hydrate a local rates cache to prevent blocking the query scheduler.
-- **`backend/src/utils/currencyFormatter.js` (Proposed):** To centralize base-currency conversions rather than polluting the scraper layer or Telegram message builder.
-- **`frontend/src/utils/pricing.js` (Proposed):** Shared frontend logic for rendering mixed currency text so `Card.jsx` and `QueryModal.jsx` stay clean.
+The system evaluates multi-currency operations using the newly integrated exchange rate engine.
+- **Backend:** `fxService.js` caches exchange rates from Frankfurter. 
+- **Routes:** `query.routes.js` computes cross-currency profit/loss (`profitLoss` and `profitLossCurrency`) before delivering to the frontend.
+- **Frontend Display:** `Card.jsx` and `QueryModal.jsx` utilize the pre-calculated metrics from the API rather than attempting local math, keeping the client pure of FX logic.

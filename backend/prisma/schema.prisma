@@ -35,6 +35,7 @@ model Query {
   minSeats          Int          @default(1)
   maxPrice          Int?                        // per-ticket ceiling in cents, null = no limit
   salePrice         Int?         // per-ticket sale price in cents
+  salePriceCurrency String       @default("EUR")  // ISO 4217 code for salePrice
   orderNo           String       @default("")   // operational reference, not unique
 
   isActive          Boolean      @default(true)

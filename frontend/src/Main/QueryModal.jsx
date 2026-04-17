@@ -4,15 +4,16 @@ import { useFetcher } from "react-router-dom";
 import { apiFetch } from "../api";
 import styles from "./QueryModal.module.css";
 
-const CURRENCY_MAP = {
-  DE: { symbol: "€", code: "EUR" },
-  UK: { symbol: "£", code: "GBP" },
-};
+const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR" };
+const CURRENCY_OPTIONS = [
+  { code: "EUR" },
+  { code: "GBP" },
+  { code: "USD" },
+];
 
-function formatPrice(cents, domain) {
+function formatPrice(cents, currencyCode) {
   if (cents == null) return "–";
-  const { symbol } = CURRENCY_MAP[domain] || { symbol: "€" };
-  return `${symbol}${(cents / 100).toFixed(2)}`;
+  return `${(cents / 100).toFixed(2)} ${currencyCode}`;
 }
 
 // Derive display status from backend fields
@@ -134,7 +135,29 @@ export default function QueryModal({ query, onClose }) {
               </div>
               <div className={styles.editField}>
                 <label className={styles.editLabel}>Satış Fiyatı</label>
-                <input type="number" name="salePrice" defaultValue={query.salePrice ? query.salePrice / 100 : ""} className={styles.editInput} />
+                <div style={{ display: "flex", gap: "6px", alignItems: "stretch" }}>
+                  <input type="number" name="salePrice" defaultValue={query.salePrice ? query.salePrice / 100 : ""} className={styles.editInput} style={{ flex: 1 }} />
+                  <select
+                    name="salePriceCurrency"
+                    defaultValue={query.salePriceCurrency || "EUR"}
+                    className={styles.editInput}
+                    style={{
+                      width: "52px",
+                      flex: "none",
+                      padding: "0",
+                      textAlign: "center",
+                      fontWeight: "600",
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      appearance: "none",
+                      WebkitAppearance: "none",
+                    }}
+                  >
+                    {CURRENCY_OPTIONS.map((c) => (
+                      <option key={c.code} value={c.code}>{c.code}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -167,11 +190,11 @@ export default function QueryModal({ query, onClose }) {
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Max. Fiyat</span>
-              <span className={styles.infoValue}>{formatPrice(query.maxPrice, query.domain)}</span>
+              <span className={styles.infoValue}>{formatPrice(query.maxPrice, DOMAIN_CURRENCY[query.domain] || "EUR")}</span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Satış Fiyatı</span>
-              <span className={styles.infoValue}>{formatPrice(query.salePrice, query.domain)}</span>
+              <span className={styles.infoValue}>{formatPrice(query.salePrice, query.salePriceCurrency || "EUR")}</span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Durum</span>
@@ -180,13 +203,16 @@ export default function QueryModal({ query, onClose }) {
                 data-status={displayStatus}
               >
                 {STATUS_LABELS[displayStatus] || displayStatus}
-                {displayStatus === "price_exceeded" && ` (${formatPrice(query.foundPrice, query.domain)})`}
+                {displayStatus === "price_exceeded" && ` (${formatPrice(query.foundPrice, DOMAIN_CURRENCY[query.domain] || "EUR")})`}
                 {(() => {
+                  const { profitLoss, profitLossCurrency } = query;
                   if ((displayStatus === "found" || displayStatus === "price_exceeded" || displayStatus === "purchased") && query.foundPrice != null && query.salePrice != null) {
-                    const diff = query.salePrice - query.foundPrice;
-                    if (diff > 0) return <span className="text-green-600 font-bold ml-2">({formatPrice(diff, query.domain)} profit)</span>;
-                    if (diff < 0) return <span className="text-red-500 font-bold ml-2">({formatPrice(Math.abs(diff), query.domain)} loss)</span>;
-                    return <span className="text-gray-500 font-bold ml-2">(0 profit)</span>;
+                    if (profitLoss != null && profitLossCurrency) {
+                      if (profitLoss > 0) return <span className="text-green-600 font-bold ml-2">({formatPrice(profitLoss, profitLossCurrency)} kâr)</span>;
+                      if (profitLoss < 0) return <span className="text-red-500 font-bold ml-2">({formatPrice(Math.abs(profitLoss), profitLossCurrency)} zarar)</span>;
+                      return <span className="text-gray-500 font-bold ml-2">(0 kâr)</span>;
+                    }
+                    return <span className="text-gray-400 font-bold ml-2">(–)</span>;
                   }
                   return null;
                 })()}

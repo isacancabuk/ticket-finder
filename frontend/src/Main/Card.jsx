@@ -2,14 +2,11 @@ import { useState } from "react";
 import styles from "./Card.module.css";
 import "/node_modules/flag-icons/css/flag-icons.min.css";
 
-const CURRENCY_MAP = {
-  DE: { symbol: "€", code: "EUR" },
-  UK: { symbol: "£", code: "GBP" },
-};
+const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR" };
 
-function formatPrice(cents, domain) {
-  const { symbol } = CURRENCY_MAP[domain] || { symbol: "€" };
-  return `${symbol}${(cents / 100).toFixed(2)}`;
+function formatPrice(cents, currencyCode) {
+  if (cents == null) return "–";
+  return `${(cents / 100).toFixed(2)} ${currencyCode}`;
 }
 
 function getDisplayStatus(query) {
@@ -45,12 +42,17 @@ export default function Card({ query, onClick }) {
     eventDate,
     foundPrice,
     salePrice,
+    salePriceCurrency,
   } = query;
   const site = "TicketMaster";
   const imgUrl = new URL(`../assets/${site}.png`, import.meta.url).href;
   const displayStatus = getDisplayStatus(query);
   const statusLabel = STATUS_LABELS[displayStatus] || status;
   const countryCode = domain?.toLowerCase() || "de";
+
+  // Currency resolution
+  const foundCurrency = DOMAIN_CURRENCY[domain] || "EUR";
+  const saleCurrency = salePriceCurrency || "EUR";
 
   // Event yer ve tarih formatlama
   let formattedDate = eventDate;
@@ -68,14 +70,19 @@ export default function Card({ query, onClick }) {
   const metaLine = metaParts.length > 0 ? metaParts.join(" • ") : null;
 
   let profitLossLine = null;
+  const profitLoss = query.profitLoss;
+  const profitLossCurrency = query.profitLossCurrency;
   if ((displayStatus === "found" || displayStatus === "price_exceeded" || displayStatus === "purchased") && foundPrice != null && salePrice != null) {
-    const diff = salePrice - foundPrice;
-    if (diff > 0) {
-      profitLossLine = <span className="text-green-600 font-bold">, {formatPrice(diff, domain)} kâr</span>;
-    } else if (diff < 0) {
-      profitLossLine = <span className="text-red-500 font-bold">, {formatPrice(Math.abs(diff), domain)} zarar</span>;
+    if (profitLoss != null && profitLossCurrency) {
+      if (profitLoss > 0) {
+        profitLossLine = <span className="text-green-600 font-bold">, {formatPrice(profitLoss, profitLossCurrency)} kâr</span>;
+      } else if (profitLoss < 0) {
+        profitLossLine = <span className="text-red-500 font-bold">, {formatPrice(Math.abs(profitLoss), profitLossCurrency)} zarar</span>;
+      } else {
+        profitLossLine = <span className="text-gray-500 font-bold">, 0 kâr</span>;
+      }
     } else {
-      profitLossLine = <span className="text-gray-500 font-bold">, 0 kâr</span>;
+      profitLossLine = <span className="text-gray-400 font-bold">, –</span>;
     }
   }
 
@@ -141,7 +148,7 @@ export default function Card({ query, onClick }) {
         <div className="flex flex-col items-center gap-1">
           <div className="flex flex-col items-center">
             <p className="text-sm font-bold text-gray-700">
-              {salePrice != null ? `${formatPrice(salePrice, domain)} satış fiyatı` : "\u00A0"}
+              {salePrice != null ? `${formatPrice(salePrice, saleCurrency)} satış fiyatı` : "\u00A0"}
             </p>
           </div>
           <p className={`font-bold text-2xl ${styles.statusText}`}>
@@ -150,7 +157,7 @@ export default function Card({ query, onClick }) {
           <p className={styles.priceInfo}>
             {(displayStatus === "found" || displayStatus === "price_exceeded" || displayStatus === "purchased") && foundPrice != null ? (
               <>
-                <span>{formatPrice(foundPrice, domain)} bulundu</span>
+                <span>{formatPrice(foundPrice, foundCurrency)} bulundu</span>
                 {profitLossLine}
               </>
             ) : (

@@ -37,7 +37,7 @@ export function startScheduler() {
       try {
         const decision = buildNotificationDecision(result);
         if (decision.shouldNotify) {
-          const message = buildTelegramMessage(result.updatedQuery);
+          const message = await buildTelegramMessage(result.updatedQuery);
           await sendTelegramMessage(message);
         }
       } catch (notifyErr) {

@@ -33,26 +33,26 @@ Use this guide to know exactly which files to edit when making common changes to
 
 ---
 
-## 💱 Future Currency / FX Workflow Guide
+## 💱 Managing Currency & FX Operations
 
-When the time comes to implement the **Multi-Currency and Frankfurter FX Integration**, here is the anticipated change surface:
+With the **Multi-Currency and Frankfurter FX Integration** actively running, refer to these surfaces for further maintenance:
 
-### Changing sale price storage model (adding currency field)
-- **`backend/prisma/schema.prisma`**: Add `salePriceCurrency Enum` (e.g. EUR, GBP, USD).
-- **`backend/src/routes/query.routes.js`**: Validate the new currency enum in the POST and PATCH body map.
-- **`frontend/src/Header/HeaderSection.jsx`**: Introduce a dropdown/select element next to the user's `salePrice` integer box.
+### Changing sale price support (Adding new currencies)
+- **`backend/src/utils/currencyConfig.js`**: Add the ISO code to `SUPPORTED_SALE_CURRENCIES` and map its symbol in `CURRENCY_SYMBOLS`.
+- **`frontend/src/Header/HeaderSection.jsx`**: Add the new currency Object `{ code: "XYZ", symbol: "Z" }` to the `CURRENCY_OPTIONS` array.
+- **`frontend/src/Main/QueryModal.jsx`**: Add the new currency to `CURRENCY_OPTIONS` array so users can select it when editing.
 
-### Adding an exchange-rate provider / base currency logic
-- Creates new files: Likely `backend/src/services/fxService.js`.
-- This file will need to poll the Frankfurter API, cache the response in memory (or Redis/DB), and export a `convertCurrency(amount, from, to)` method.
+### Modifying the exchange-rate provider
+- **`backend/src/services/fxService.js`**: Swap or abstract the `Frankfurter` API calls with a new provider. Adjust the 24-hour cache TTL logic as necessary.
 
-### Changing profit/loss calculations
-- **Current Locations**: `Card.jsx` (Frontend) and `buildTelegramMessage.js` (Backend).
-- **Required Shift**: Currently, these do raw math (`salePrice - foundPrice`). They must be updated to invoke asynchronous FX conversions or accept pre-calculated FX payloads injected by `runQuery.js`.
+### Changing profit/loss calculations or behavior
+- **`backend/src/routes/query.routes.js`**: `GET /` calculates FX enrichment (`profitLoss` and `profitLossCurrency`) for the frontend display arrays. Modify the math or fallback behaviors here.
+- **`backend/src/services/buildTelegramMessage.js`**: Performs its own async isolated FX conversion logic to determine notification contents.
+- **`maxPrice` logic**: Modifying `maxPrice` evaluates natively and remains insulated from FX inside `backend/fetch-de.js` and `backend/src/services/runQuery.js`.
 
 ### Changing pricing display in cards and modals
-- **`frontend/src/Main/Card.jsx`** / **`QueryModal.jsx`**: The `formatPrice` utility function currently relies strictly on the `domain` symbol. This will need to be refactored to look at `salePriceCurrency` and the `eventDomain` concurrently to render mixed strings like: `Sale: €200.00 | Found: £150.00`.
+- **`frontend/src/Main/Card.jsx`** / **`QueryModal.jsx`**: Both now natively consume backend-computed `profitLoss` arrays. Altering how strings like `Sale: €200.00 | Profit: £41.47` display is purely presentational inside these React components using `formatPrice()`.
 
 ### Supporting varying found-ticket currencies across providers
-- **`backend/fetch-uk.js`** / **`fetch-de.js`**: Scrapers will need to explicitly return the currency of the metadata parsed alongside `foundPrice`. (e.g. returning `{ isAvailable: true, foundPrice: 15000, currency: "GBP" }`).
-- **`backend/src/services/runQuery.js`**: Will need to ingest this explicitly returned currency downstream to persist it to the `CheckResult` context blocks.
+- **`backend/src/utils/currencyConfig.js`**: Map the domain explicitly using `DOMAIN_CURRENCY['US'] = 'USD'`. 
+- **`backend/fetch-uk.js`** / **`fetch-de.js`**: The scraper does not evaluate the currency itself but strictly aligns with the mapping set inside `currencyConfig.js`.

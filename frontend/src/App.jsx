@@ -21,6 +21,7 @@ async function rootAction({ request }) {
       minSeats: formData.get("minSeats") || "1",
       maxPrice: formData.get("maxPrice") || "",
       salePrice: formData.get("salePrice") || "",
+      salePriceCurrency: formData.get("salePriceCurrency") || "EUR",
       orderNo: formData.get("orderNo"),
     };
 
@@ -69,6 +70,7 @@ async function rootAction({ request }) {
       minSeats: formData.get("minSeats") || "1",
       maxPrice: formData.get("maxPrice"),
       salePrice: formData.get("salePrice"),
+      salePriceCurrency: formData.get("salePriceCurrency"),
       orderNo: formData.get("orderNo"),
     };
     const res = await apiFetch(`/queries/${id}`, {

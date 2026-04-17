@@ -4,6 +4,9 @@ import { parseTicketmasterUrl } from "../utils/parseTicketmasterUrl.js";
 import { fetchEventMetadata } from "../utils/fetchEventMetadata.js";
 import { runQuery } from "../services/runQuery.js";
 import { fetchDEManifestSections } from "../../fetchDEManifestSections.js";
+import { fetchESManifestSections } from "../../fetchESManifestSections.js";
+import { SUPPORTED_SALE_CURRENCIES, DOMAIN_CURRENCY } from "../utils/currencyConfig.js";
+import { convert } from "../services/fxService.js";
 
 const router = express.Router();
 
@@ -23,16 +26,24 @@ router.get("/manifest-sections", async (req, res) => {
       return res.status(400).json({ error: err.message });
     }
 
-    if (parsed.domain !== "DE") {
+    if (parsed.domain !== "DE" && parsed.domain !== "ES") {
       return res.status(400).json({
-        error: `Manifest sections helper is only supported for DE domain, got: ${parsed.domain}`,
+        error: `Manifest sections helper is only supported for DE and ES domains, got: ${parsed.domain}`,
       });
     }
 
-    const result = await fetchDEManifestSections({
-      eventId: parsed.eventId,
-      domain: "de",
-    });
+    let result;
+    if (parsed.domain === "DE") {
+      result = await fetchDEManifestSections({
+        eventId: parsed.eventId,
+        domain: "de",
+      });
+    } else if (parsed.domain === "ES") {
+      result = await fetchESManifestSections({
+        eventId: parsed.eventId,
+        domain: "es",
+      });
+    }
 
     if (!result.success) {
       return res.status(502).json({ error: result.error });
@@ -50,12 +61,48 @@ router.get("/", async (req, res) => {
     orderBy: { createdAt: "desc" },
   });
 
-  res.json(queries);
+  // Enrich queries with computed profit/loss (FX-converted if needed)
+  const enriched = await Promise.all(
+    queries.map(async (q) => {
+      if (q.foundPrice == null || q.salePrice == null) {
+        return { ...q, profitLoss: null, profitLossCurrency: null };
+      }
+
+      const foundCurrency = DOMAIN_CURRENCY[q.domain] || "EUR";
+      const saleCurrency = q.salePriceCurrency || "EUR";
+
+      if (foundCurrency === saleCurrency) {
+        return {
+          ...q,
+          profitLoss: q.salePrice - q.foundPrice,
+          profitLossCurrency: saleCurrency,
+        };
+      }
+
+      // Cross-currency: convert foundPrice to saleCurrency
+      try {
+        const converted = await convert(q.foundPrice, foundCurrency, saleCurrency);
+        if (converted != null) {
+          return {
+            ...q,
+            profitLoss: q.salePrice - converted,
+            profitLossCurrency: saleCurrency,
+          };
+        }
+      } catch (e) {
+        // FX failure — graceful fallback
+      }
+
+      return { ...q, profitLoss: null, profitLossCurrency: null };
+    })
+  );
+
+  res.json(enriched);
 });
 
 router.post("/", async (req, res) => {
   try {
-    const { url, section, minSeats, maxPrice, salePrice, orderNo } = req.body;
+    const { url, section, minSeats, maxPrice, salePrice, salePriceCurrency, orderNo } = req.body;
 
     if (!url || !orderNo) {
       return res.status(400).json({ error: "Missing required fields: url, orderNo" });
@@ -80,7 +127,7 @@ router.post("/", async (req, res) => {
       maxPriceCents = price * 100;
     }
 
-    // Validate salePrice (optional, input is in EUR, stored as cents)
+    // Validate salePrice (optional, stored as cents)
     let salePriceCents = null;
     if (salePrice) {
       const price = parseInt(salePrice, 10);
@@ -88,6 +135,12 @@ router.post("/", async (req, res) => {
         return res.status(400).json({ error: "salePrice must be a positive integer" });
       }
       salePriceCents = price * 100;
+    }
+
+    // Validate salePriceCurrency (default EUR)
+    const saleCurrency = salePriceCurrency?.toUpperCase() || "EUR";
+    if (!SUPPORTED_SALE_CURRENCIES.includes(saleCurrency)) {
+      return res.status(400).json({ error: `salePriceCurrency must be one of: ${SUPPORTED_SALE_CURRENCIES.join(", ")}` });
     }
 
     // Parse the Ticketmaster URL
@@ -116,6 +169,7 @@ router.post("/", async (req, res) => {
           minSeats: seats,
           maxPrice: maxPriceCents,
           salePrice: salePriceCents,
+          salePriceCurrency: saleCurrency,
           orderNo,
           eventLocation: metadata.eventLocation,
           eventDate: metadata.eventDate,
@@ -199,7 +253,7 @@ router.patch("/:id/purchase", async (req, res) => {
 // Edit a query
 router.patch("/:id", async (req, res) => {
   try {
-    const { section, minSeats, maxPrice, salePrice, orderNo } = req.body;
+    const { section, minSeats, maxPrice, salePrice, salePriceCurrency, orderNo } = req.body;
     
     const updateData = {};
     if (section !== undefined) updateData.section = section?.trim() || null;
@@ -225,6 +279,14 @@ router.patch("/:id", async (req, res) => {
         if (!isNaN(parsedSale) && parsedSale >= 0) updateData.salePrice = parsedSale * 100;
       } else {
         updateData.salePrice = null;
+      }
+    }
+
+    // Validate salePriceCurrency if provided
+    if (salePriceCurrency !== undefined) {
+      const cur = salePriceCurrency?.toUpperCase() || "EUR";
+      if (SUPPORTED_SALE_CURRENCIES.includes(cur)) {
+        updateData.salePriceCurrency = cur;
       }
     }
     

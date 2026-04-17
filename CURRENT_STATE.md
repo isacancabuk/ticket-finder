@@ -17,8 +17,9 @@ This document outlines the partially implemented, fully implemented, and rough e
 - `url`: The TM page url
 - `section`: Target section text (Nullable — null checks all sections).
 - `minSeats`: Count of tickets desired.
-- `maxPrice`: Ceiling cost (Nullable — null accepts any price).
+- `maxPrice`: Ceiling cost (Nullable — null accepts any price). Evaluated strictly in the domain's native currency.
 - `salePrice`: What the user intends to sell the ticket for (Nullable).
+- `salePriceCurrency`: The explicitly tracked currency (EUR, GBP, USD, etc.) of the salePrice.
 - `orderNo`: User operational identification text.
 
 ## Current UI Behavior
@@ -27,14 +28,14 @@ This document outlines the partially implemented, fully implemented, and rough e
 - **Card Localization:** Sale pricing, found pricing, profit, and loss text are completely in Turkish. 
 - **Flags & Currency (Limitations):** A rudimentary `CURRENCY_MAP` exists mapping `DE` to `EUR` and `UK` to `GBP` for the display symbol prefix, but this is entirely cosmetic.
 
-## Current Pricing & Domain Assumptions
+## Current Pricing & Domain Integrations
 
-*IMPORTANT CONTEXT*: The system currently assumes an implicit 1:1 currency match across the board.
-- The `salePrice` inputted by the user is assumed to be in EUR.
-- The `maxPrice` inputted by the user is assumed to be in EUR.
-- The `foundPrice` returned by `fetchDE` is naturally in EUR.
-- We perform a raw subtraction (`salePrice - foundPrice = Profit`) directly in JS under the unverified assumption that both are EUR.
-- There are no database fields tracking the intended currency of prices. 
+The system evaluates availability and user pricing actively:
+- `foundPrice` matches are resolved locally by the scraper in that domain's native currency (DE -> EUR, UK -> GBP). 
+- `maxPrice` constraints are consistently evaluated against `foundPrice` *without* exchange rates. 
+- `salePrice` stores its own distinct currency (`salePriceCurrency`).
+- The backend actively calls **Frankfurter** (`fxService.js`) to cache ECB daily exchange rates. 
+- If `salePriceCurrency` differs from the event's native currency, `query.routes.js` (for UI presentation) and `buildTelegramMessage.js` (for notifications) apply async conversions to calculate `Profit = salePrice - FX(foundPrice)`.
 
 ## Current Rough Edges / Known Limitations
 
@@ -44,12 +45,9 @@ This document outlines the partially implemented, fully implemented, and rough e
 
 ---
 
-## 🏗️ Known Upcoming Design Area: Multi-Currency & FX Support
+## 🏗️ Future Implementation Goals
 
-We are actively planning to transition from the assumed EUR-only model to a robust multi-currency calculation engine. 
+The core Multi-Currency/FX infrastructure is completely implemented. What remains:
 
-**What is MISSING and requires future implementation:**
-- **Schema missing fields:** We do not track the user's intended currency for the `salePrice` (e.g. `salePriceCurrency`).
-- **Domain discrepancies:** When `fetchUK` is completed, it will return prices in `GBP`. A user might specify `salePrice: 200, salePriceCurrency: EUR`.
-- **Missing FX Layer:** We currently lack any API to pull live exchange rates (e.g. Frankfurter) to accurately evaluate Profit/Loss (e.g., `(200 EUR) - (150 GBP in EUR) = Output`).
-- **Missing Base Accounting:** There is no concept of a generic `baseAccountCurrency` for the whole dashboard layout to normalize analytics.
+- **Complete TM UK Scraper:** The `fetch-uk.js` scraper needs to be connected to the `runQuery.js` pipeline so that the active currency mappings (`DOMAIN_CURRENCY['UK'] === 'GBP'`) are exercised against real Ticketmaster UK tickets.
+- **Provider Expansion:** If expanding into APIs with non-ECB supported currencies and higher exchange volatility, Frankfurter might need to be abstracted to a secondary fallback API.

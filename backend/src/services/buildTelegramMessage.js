@@ -1,15 +1,7 @@
-const CURRENCY_MAP = {
-  DE: { symbol: "€", code: "EUR" },
-  UK: { symbol: "£", code: "GBP" },
-};
+import { DOMAIN_CURRENCY, formatPriceByCurrency } from "../utils/currencyConfig.js";
+import { convert } from "./fxService.js";
 
-function formatPrice(cents, domain) {
-  if (cents == null) return null;
-  const { symbol } = CURRENCY_MAP[domain] || { symbol: "€" };
-  return `${symbol}${(cents / 100).toFixed(2)}`;
-}
-
-export function buildTelegramMessage(query) {
+export async function buildTelegramMessage(query) {
   const eventName = query.eventName || "Bilinmeyen Etkinlik";
   const section = query.section || "Tümü";
   const minSeats = query.minSeats || 1;
@@ -17,9 +9,16 @@ export function buildTelegramMessage(query) {
   const eventUrl = query.eventUrl || "Link yok";
   const orderNo = query.orderNo || "–";
 
-  const priceStr = formatPrice(query.foundPrice, domain) || "Bilinmiyor";
-  const maxPriceStr = formatPrice(query.maxPrice, domain) || "Limit yok";
-  const salePriceStr = formatPrice(query.salePrice, domain) || "–";
+  const foundCurrency = DOMAIN_CURRENCY[domain] || "EUR";
+  const saleCurrency = query.salePriceCurrency || "EUR";
+
+  const priceStr = formatPriceByCurrency(query.foundPrice, foundCurrency);
+  const maxPriceStr = query.maxPrice != null
+    ? formatPriceByCurrency(query.maxPrice, foundCurrency)
+    : "Limit yok";
+  const salePriceStr = query.salePrice != null
+    ? formatPriceByCurrency(query.salePrice, saleCurrency)
+    : "–";
 
   let lines = [
     `🎟️ BİLET BULUNDU!`,
@@ -35,13 +34,31 @@ export function buildTelegramMessage(query) {
 
   // Profit/loss calculation
   if (query.foundPrice != null && query.salePrice != null) {
-    const diff = query.salePrice - query.foundPrice;
-    if (diff > 0) {
-      lines.push(`💰 Kâr: ${formatPrice(diff, domain)}`);
-    } else if (diff < 0) {
-      lines.push(`📉 Zarar: ${formatPrice(Math.abs(diff), domain)}`);
+    if (foundCurrency === saleCurrency) {
+      // Same currency — simple subtraction
+      const diff = query.salePrice - query.foundPrice;
+      if (diff > 0) {
+        lines.push(`💰 Kâr: ${formatPriceByCurrency(diff, saleCurrency)}`);
+      } else if (diff < 0) {
+        lines.push(`📉 Zarar: ${formatPriceByCurrency(Math.abs(diff), saleCurrency)}`);
+      } else {
+        lines.push(`⚖️ Başabaş`);
+      }
     } else {
-      lines.push(`⚖️ Başabaş`);
+      // Cross-currency — convert foundPrice to saleCurrency
+      const convertedFound = await convert(query.foundPrice, foundCurrency, saleCurrency);
+      if (convertedFound != null) {
+        const diff = query.salePrice - convertedFound;
+        if (diff > 0) {
+          lines.push(`💰 Kâr: ${formatPriceByCurrency(diff, saleCurrency)}`);
+        } else if (diff < 0) {
+          lines.push(`📉 Zarar: ${formatPriceByCurrency(Math.abs(diff), saleCurrency)}`);
+        } else {
+          lines.push(`⚖️ Başabaş`);
+        }
+      } else {
+        lines.push(`⚠️ Kâr/Zarar: –`);
+      }
     }
   }
 
