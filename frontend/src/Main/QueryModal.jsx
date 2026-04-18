@@ -5,11 +5,7 @@ import { apiFetch } from "../api";
 import styles from "./QueryModal.module.css";
 
 const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR" };
-const CURRENCY_OPTIONS = [
-  { code: "EUR" },
-  { code: "GBP" },
-  { code: "USD" },
-];
+const CURRENCY_OPTIONS = [{ code: "EUR" }, { code: "GBP" }, { code: "USD" }];
 
 function formatPrice(cents, currencyCode) {
   if (cents == null) return "–";
@@ -75,7 +71,9 @@ export default function QueryModal({ query, onClose }) {
     }
 
     fetchLogs();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [query.id, logFilter]);
 
   // Close modal after delete completes
@@ -115,28 +113,57 @@ export default function QueryModal({ query, onClose }) {
           <fetcher.Form method="POST" className={styles.editForm}>
             <input type="hidden" name="_action" value="edit" />
             <input type="hidden" name="queryId" value={query.id} />
-            
+
             <div className={styles.editGrid}>
               <div className={styles.editField}>
                 <label className={styles.editLabel}>Order Number</label>
-                <input type="text" name="orderNo" defaultValue={query.orderNo} className={styles.editInput} />
+                <input
+                  type="text"
+                  name="orderNo"
+                  defaultValue={query.orderNo}
+                  className={styles.editInput}
+                />
               </div>
               <div className={styles.editField}>
                 <label className={styles.editLabel}>Section</label>
-                <input type="text" name="section" defaultValue={query.section} className={styles.editInput} />
+                <input
+                  type="text"
+                  name="section"
+                  placeholder="e.g. 101 102 103"
+                  defaultValue={query.section}
+                  className={styles.editInput}
+                />
               </div>
               <div className={styles.editField}>
                 <label className={styles.editLabel}>Min. Koltuk</label>
-                <input type="number" name="minSeats" defaultValue={query.minSeats} className={styles.editInput} />
+                <input
+                  type="number"
+                  name="minSeats"
+                  defaultValue={query.minSeats}
+                  className={styles.editInput}
+                />
               </div>
               <div className={styles.editField}>
                 <label className={styles.editLabel}>Max. Fiyat</label>
-                <input type="number" name="maxPrice" defaultValue={query.maxPrice ? query.maxPrice / 100 : ""} className={styles.editInput} />
+                <input
+                  type="number"
+                  name="maxPrice"
+                  defaultValue={query.maxPrice ? query.maxPrice / 100 : ""}
+                  className={styles.editInput}
+                />
               </div>
               <div className={styles.editField}>
                 <label className={styles.editLabel}>Satış Fiyatı</label>
-                <div style={{ display: "flex", gap: "6px", alignItems: "stretch" }}>
-                  <input type="number" name="salePrice" defaultValue={query.salePrice ? query.salePrice / 100 : ""} className={styles.editInput} style={{ flex: 1 }} />
+                <div
+                  style={{ display: "flex", gap: "6px", alignItems: "stretch" }}
+                >
+                  <input
+                    type="number"
+                    name="salePrice"
+                    defaultValue={query.salePrice ? query.salePrice / 100 : ""}
+                    className={styles.editInput}
+                    style={{ flex: 1 }}
+                  />
                   <select
                     name="salePriceCurrency"
                     defaultValue={query.salePriceCurrency || "EUR"}
@@ -154,7 +181,9 @@ export default function QueryModal({ query, onClose }) {
                     }}
                   >
                     {CURRENCY_OPTIONS.map((c) => (
-                      <option key={c.code} value={c.code}>{c.code}</option>
+                      <option key={c.code} value={c.code}>
+                        {c.code}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -162,10 +191,18 @@ export default function QueryModal({ query, onClose }) {
             </div>
 
             <div className={styles.editActions}>
-              <button type="submit" disabled={isBusy} className={styles.editSaveBtn}>
+              <button
+                type="submit"
+                disabled={isBusy}
+                className={styles.editSaveBtn}
+              >
                 {isBusy ? "Kaydediliyor..." : "Kaydet"}
               </button>
-              <button type="button" onClick={() => setIsEditing(false)} className={styles.editCancelBtn}>
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className={styles.editCancelBtn}
+              >
                 İptal
               </button>
             </div>
@@ -182,7 +219,9 @@ export default function QueryModal({ query, onClose }) {
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Section</span>
-              <span className={styles.infoValue}>{query.section || "Tümü (Genel)"}</span>
+              <span className={styles.infoValue}>
+                {query.section || "Tümü (Genel)"}
+              </span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Min. Koltuk</span>
@@ -190,29 +229,65 @@ export default function QueryModal({ query, onClose }) {
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Max. Fiyat</span>
-              <span className={styles.infoValue}>{formatPrice(query.maxPrice, DOMAIN_CURRENCY[query.domain] || "EUR")}</span>
+              <span className={styles.infoValue}>
+                {formatPrice(
+                  query.maxPrice,
+                  DOMAIN_CURRENCY[query.domain] || "EUR",
+                )}
+              </span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Satış Fiyatı</span>
-              <span className={styles.infoValue}>{formatPrice(query.salePrice, query.salePriceCurrency || "EUR")}</span>
+              <span className={styles.infoValue}>
+                {formatPrice(query.salePrice, query.salePriceCurrency || "EUR")}
+                {query.salePriceInEUR != null &&
+                  (query.salePriceCurrency || "EUR") !== "EUR" && (
+                    <> ({formatPrice(query.salePriceInEUR, "EUR")})</>
+                  )}
+              </span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Durum</span>
-              <span
-                className={styles.infoValue}
-                data-status={displayStatus}
-              >
+              <span className={styles.infoValue} data-status={displayStatus}>
                 {STATUS_LABELS[displayStatus] || displayStatus}
-                {displayStatus === "price_exceeded" && ` (${formatPrice(query.foundPrice, DOMAIN_CURRENCY[query.domain] || "EUR")})`}
+                {displayStatus === "price_exceeded" &&
+                  ` (${formatPrice(query.foundPrice, DOMAIN_CURRENCY[query.domain] || "EUR")}${query.foundPriceInEUR != null && (DOMAIN_CURRENCY[query.domain] || "EUR") !== "EUR" ? ` / ${formatPrice(query.foundPriceInEUR, "EUR")}` : ""})`}
                 {(() => {
                   const { profitLoss, profitLossCurrency } = query;
-                  if ((displayStatus === "found" || displayStatus === "price_exceeded" || displayStatus === "purchased") && query.foundPrice != null && query.salePrice != null) {
+                  if (
+                    (displayStatus === "found" ||
+                      displayStatus === "price_exceeded" ||
+                      displayStatus === "purchased") &&
+                    query.foundPrice != null &&
+                    query.salePrice != null
+                  ) {
                     if (profitLoss != null && profitLossCurrency) {
-                      if (profitLoss > 0) return <span className="text-green-600 font-bold ml-2">({formatPrice(profitLoss, profitLossCurrency)} kâr)</span>;
-                      if (profitLoss < 0) return <span className="text-red-500 font-bold ml-2">({formatPrice(Math.abs(profitLoss), profitLossCurrency)} zarar)</span>;
-                      return <span className="text-gray-500 font-bold ml-2">(0 kâr)</span>;
+                      if (profitLoss > 0)
+                        return (
+                          <span className="text-green-600 font-bold ml-2">
+                            ({formatPrice(profitLoss, profitLossCurrency)} kâr)
+                          </span>
+                        );
+                      if (profitLoss < 0)
+                        return (
+                          <span className="text-red-500 font-bold ml-2">
+                            (
+                            {formatPrice(
+                              Math.abs(profitLoss),
+                              profitLossCurrency,
+                            )}{" "}
+                            zarar)
+                          </span>
+                        );
+                      return (
+                        <span className="text-gray-500 font-bold ml-2">
+                          (0 kâr)
+                        </span>
+                      );
                     }
-                    return <span className="text-gray-400 font-bold ml-2">(–)</span>;
+                    return (
+                      <span className="text-gray-400 font-bold ml-2">(–)</span>
+                    );
                   }
                   return null;
                 })()}
@@ -225,10 +300,10 @@ export default function QueryModal({ query, onClose }) {
               </div>
             )}
             {query.eventDate && (
-               <div className={styles.infoItem}>
-                 <span className={styles.infoLabel}>Tarih</span>
-                 <span className={styles.infoValue}>{query.eventDate}</span>
-               </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Tarih</span>
+                <span className={styles.infoValue}>{query.eventDate}</span>
+              </div>
             )}
             {query.lastCheckedAt && (
               <div className={styles.infoItem}>
@@ -272,7 +347,7 @@ export default function QueryModal({ query, onClose }) {
                 <button
                   type="submit"
                   className={styles.btnPurchase}
-                  style={{ backgroundColor: '#2e8b57', color: '#fff' }}
+                  style={{ backgroundColor: "#2e8b57", color: "#fff" }}
                   disabled={isBusy}
                 >
                   Alındı
@@ -308,7 +383,7 @@ export default function QueryModal({ query, onClose }) {
             <button
               type="button"
               className={styles.btnEdit}
-              style={{ backgroundColor: '#aaa', color: '#fff' }}
+              style={{ backgroundColor: "#aaa", color: "#fff" }}
               disabled={isBusy}
               onClick={() => setIsEditing(true)}
             >
@@ -333,21 +408,21 @@ export default function QueryModal({ query, onClose }) {
           <div className={styles.logsHeaderContainer}>
             <h3 className={styles.logsTitle}>Loglar</h3>
             <div className={styles.filterTabs}>
-              <button 
-                className={`${styles.filterTab} ${logFilter === 'significant' ? styles.activeTab : ''}`}
-                onClick={() => setLogFilter('significant')}
+              <button
+                className={`${styles.filterTab} ${logFilter === "significant" ? styles.activeTab : ""}`}
+                onClick={() => setLogFilter("significant")}
               >
                 Önemli
               </button>
-              <button 
-                className={`${styles.filterTab} ${logFilter === 'found' ? styles.activeTab : ''}`}
-                onClick={() => setLogFilter('found')}
+              <button
+                className={`${styles.filterTab} ${logFilter === "found" ? styles.activeTab : ""}`}
+                onClick={() => setLogFilter("found")}
               >
                 Bulunanlar
               </button>
-              <button 
-                className={`${styles.filterTab} ${logFilter === 'all' ? styles.activeTab : ''}`}
-                onClick={() => setLogFilter('all')}
+              <button
+                className={`${styles.filterTab} ${logFilter === "all" ? styles.activeTab : ""}`}
+                onClick={() => setLogFilter("all")}
               >
                 Tümü
               </button>
@@ -355,52 +430,64 @@ export default function QueryModal({ query, onClose }) {
           </div>
           <div className={styles.logsContent}>
             {logsLoading ? (
-              <div className={styles.logsPlaceholder}><p>Yükleniyor...</p></div>
+              <div className={styles.logsPlaceholder}>
+                <p>Yükleniyor...</p>
+              </div>
             ) : logs.length === 0 ? (
-              <div className={styles.logsPlaceholder}><p>İlk kontrol bekleniyor veya parametre eşleşen log bulunamadı...</p></div>
+              <div className={styles.logsPlaceholder}>
+                <p>
+                  İlk kontrol bekleniyor veya parametre eşleşen log
+                  bulunamadı...
+                </p>
+              </div>
             ) : (
               <div className={styles.logsTable}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Zaman</th>
-                    <th>Durum</th>
-                    <th>Fiyat</th>
-                    <th>Mevcut</th>
-                    <th>Gecikme</th>
-                    <th>Hata</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map((log) => {
-                     let rowStatus = log.status;
-                     let rowClass = "";
-                     if (log.priceExceeded) {
-                       rowStatus = "Fiyat Aşıldı";
-                       rowClass = styles.logRowPriceExceeded;
-                     }
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Zaman</th>
+                      <th>Durum</th>
+                      <th>Fiyat</th>
+                      <th>Mevcut</th>
+                      <th>Gecikme</th>
+                      <th>Hata</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {logs.map((log) => {
+                      let rowStatus = log.status;
+                      let rowClass = "";
+                      if (log.priceExceeded) {
+                        rowStatus = "Fiyat Aşıldı";
+                        rowClass = styles.logRowPriceExceeded;
+                      }
 
-                     return (
-                      <tr key={log.id} className={rowClass}>
-                        <td>{new Date(log.checkedAt).toLocaleString()}</td>
-                        <td>{rowStatus}</td>
-                        <td>{formatPrice(log.foundPrice, query.domain)}</td>
-                        <td>{log.isAvailable ? "Evet" : "Hayır"}</td>
-                        <td>{log.latencyMs != null ? `${log.latencyMs}ms` : "–"}</td>
-                        <td className={styles.logError}>
-                          {log.errorMessage || "–"}
-                        </td>
-                      </tr>
-                     );
-                  })}
-                </tbody>
-              </table>
+                      return (
+                        <tr key={log.id} className={rowClass}>
+                          <td>{new Date(log.checkedAt).toLocaleString()}</td>
+                          <td>{rowStatus}</td>
+                          <td>{formatPrice(log.foundPrice, DOMAIN_CURRENCY[query.domain] || "EUR")}</td>
+                          <td>
+                            {log.isAvailable ? "Evet" : "Hayır"}
+                            {log.isAvailable && log.foundSection ? ` (Blok: ${log.foundSection})` : ""}
+                          </td>
+                          <td>
+                            {log.latencyMs != null ? `${log.latencyMs}ms` : "–"}
+                          </td>
+                          <td className={styles.logError}>
+                            {log.errorMessage || "–"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

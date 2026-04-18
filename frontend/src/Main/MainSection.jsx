@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Card from "./Card";
+import FilterBar from "./FilterBar";
 
 function getDisplayStatus(query) {
   if (query.status === "PURCHASED") return "PURCHASED";
@@ -19,17 +20,14 @@ const SORT_PRIORITY = {
   STOPPED: 6,
 };
 
-const FILTER_OPTIONS = [
-  { label: "Tümü", value: "ALL" },
-  { label: "Bulundu", value: "FOUND" },
-  { label: "Fiyat Aşıldı", value: "PRICE_EXCEEDED" },
-  { label: "Aranıyor", value: "FINDING" },
-  { label: "Hata", value: "ERROR" },
-  { label: "Alındı", value: "PURCHASED" },
-];
-
 export default function MainSection({ queries = [], onCardClick }) {
-  const [filter, setFilter] = useState("ALL");
+  const [filterState, setFilterState] = useState({
+    searchQuery: "",
+    selectedCountry: "Tümü",
+    selectedSite: "Tümü",
+    sortDateAsc: false,
+    selectedStatus: "ALL",
+  });
 
   if (queries.length === 0) {
     return (
@@ -41,67 +39,102 @@ export default function MainSection({ queries = [], onCardClick }) {
     );
   }
 
-  const mapped = queries.map(q => ({ ...q, displayStatus: getDisplayStatus(q) }));
-  const filtered = filter === "ALL" ? mapped : mapped.filter(q => q.displayStatus === filter);
+  // Map display status to all queries
+  const mapped = queries.map((q) => ({
+    ...q,
+    displayStatus: getDisplayStatus(q),
+  }));
 
+  // Apply filters
+  let filtered = mapped.filter((q) => {
+    // Status filter
+    if (
+      filterState.selectedStatus !== "ALL" &&
+      q.displayStatus !== filterState.selectedStatus
+    ) {
+      return false;
+    }
+
+    // Country filter
+    if (filterState.selectedCountry !== "Tümü") {
+      if (!q.domain || q.domain !== filterState.selectedCountry) {
+        return false;
+      }
+    }
+
+    // Site filter (currently only ticketmaster)
+    if (filterState.selectedSite !== "Tümü") {
+      if (filterState.selectedSite !== "ticketmaster") {
+        return false;
+      }
+    }
+
+    // Search filter (order number or event name)
+    if (filterState.searchQuery.trim()) {
+      const query = filterState.searchQuery.toLowerCase();
+      const matchesOrderNo =
+        q.orderNo && q.orderNo.toLowerCase().includes(query);
+      const matchesEventName =
+        q.eventName && q.eventName.toLowerCase().includes(query);
+
+      if (!matchesOrderNo && !matchesEventName) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Sort: first by status priority (for status order), then by date
   filtered.sort((a, b) => {
     const pA = SORT_PRIORITY[a.displayStatus] || 99;
     const pB = SORT_PRIORITY[b.displayStatus] || 99;
     if (pA !== pB) return pA - pB;
-    return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
+
+    // Parse event date properly: handle multiple date formats
+    const parseDate = (dateStr) => {
+      if (!dateStr) return new Date(0).getTime();
+      try {
+        const date = new Date(dateStr);
+        // Check if date is valid
+        if (date instanceof Date && !isNaN(date.getTime())) {
+          return date.getTime();
+        }
+        return 0;
+      } catch (e) {
+        return 0;
+      }
+    };
+
+    // Use eventDate if available, otherwise fall back to updatedAt or createdAt
+    const timeA = a.eventDate
+      ? parseDate(a.eventDate)
+      : new Date(a.updatedAt || a.createdAt).getTime();
+    const timeB = b.eventDate
+      ? parseDate(b.eventDate)
+      : new Date(b.updatedAt || b.createdAt).getTime();
+
+    if (filterState.sortDateAsc) {
+      return timeA - timeB;
+    } else {
+      return timeB - timeA;
+    }
   });
+
+  const handleFilterChange = useCallback((newFilterState) => {
+    setFilterState(newFilterState);
+  }, []);
 
   return (
     <div className="flex flex-col items-center w-full pb-20">
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          marginBottom: "32px",
-          background: "#eaeaea",
-          border: "1px solid #d4d4d4",
-          borderRadius: "10px",
-          padding: "6px 8px 6px 16px",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "11px",
-            fontWeight: 700,
-            color: "#888",
-            textTransform: "uppercase",
-            letterSpacing: "0.6px",
-            whiteSpace: "nowrap",
-          }}
-        >
-          Filtre
-        </span>
-        <div style={{ width: "1px", height: "20px", background: "#ccc" }} />
-        <div className="flex gap-1 bg-gray-200 p-1 rounded-lg">
-          {FILTER_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setFilter(opt.value)}
-              className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wide rounded-md transition-all ${
-                filter === opt.value
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-500 hover:text-gray-800"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <FilterBar onFilterChange={handleFilterChange} />
 
       <div className="flex flex-col items-center">
         {filtered.map((query) => (
           <Card key={query.id} query={query} onClick={onCardClick} />
         ))}
         {filtered.length === 0 && (
-          <p className="text-gray-400 mt-8">No cards matching this status.</p>
+          <p className="text-gray-400 mt-8">Bu filtrelerle eşleşen kart yok.</p>
         )}
       </div>
     </div>

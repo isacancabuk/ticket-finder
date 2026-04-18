@@ -4,12 +4,12 @@ import { buildNotificationDecision } from "../services/buildNotificationDecision
 import { buildTelegramMessage } from "../services/buildTelegramMessage.js";
 import { sendTelegramMessage } from "../services/sendTelegramMessage.js";
 
-const TICK_INTERVAL_MS = 60 * 1000; // 60 seconds
+const TICK_INTERVAL_MS = 20 * 1000; // 20 seconds
 
 let isRunning = false;
 
 export function startScheduler() {
-  console.log("[scheduler] Scheduler started (tick every 60s)");
+  console.log("[scheduler] Scheduler started (tick every 20s)");
 
   setInterval(async () => {
     if (isRunning) {
@@ -29,7 +29,7 @@ export function startScheduler() {
 
       console.log(
         `[scheduler] Running query ${query.id} ` +
-          `(domain=${query.domain} event=${query.eventId} section=${query.section || "ALL"})`
+          `(domain=${query.domain} event=${query.eventId} section=${query.section || "ALL"})`,
       );
 
       const result = await runQuery(query.id);

@@ -5,7 +5,10 @@ import { fetchEventMetadata } from "../utils/fetchEventMetadata.js";
 import { runQuery } from "../services/runQuery.js";
 import { fetchDEManifestSections } from "../../fetchDEManifestSections.js";
 import { fetchESManifestSections } from "../../fetchESManifestSections.js";
-import { SUPPORTED_SALE_CURRENCIES, DOMAIN_CURRENCY } from "../utils/currencyConfig.js";
+import {
+  SUPPORTED_SALE_CURRENCIES,
+  DOMAIN_CURRENCY,
+} from "../utils/currencyConfig.js";
 import { convert } from "../services/fxService.js";
 
 const router = express.Router();
@@ -16,7 +19,9 @@ router.get("/manifest-sections", async (req, res) => {
     const { url } = req.query;
 
     if (!url) {
-      return res.status(400).json({ error: "Missing required query param: url" });
+      return res
+        .status(400)
+        .json({ error: "Missing required query param: url" });
     }
 
     let parsed;
@@ -61,40 +66,77 @@ router.get("/", async (req, res) => {
     orderBy: { createdAt: "desc" },
   });
 
-  // Enrich queries with computed profit/loss (FX-converted if needed)
+  // Enrich queries with computed profit/loss (FX-converted if needed) + EUR normalization
   const enriched = await Promise.all(
     queries.map(async (q) => {
-      if (q.foundPrice == null || q.salePrice == null) {
-        return { ...q, profitLoss: null, profitLossCurrency: null };
-      }
-
       const foundCurrency = DOMAIN_CURRENCY[q.domain] || "EUR";
       const saleCurrency = q.salePriceCurrency || "EUR";
+      const minSeats = q.minSeats || 1;
 
-      if (foundCurrency === saleCurrency) {
+      // Calculate total found price for all seats
+      const totalFoundPrice =
+        q.foundPrice != null ? q.foundPrice * minSeats : null;
+
+      // Initialize EUR normalization
+      let salePriceInEUR = null;
+      let foundPriceInEUR = null;
+
+      // Convert sale price to EUR if needed
+      if (q.salePrice != null) {
+        if (saleCurrency === "EUR") {
+          salePriceInEUR = q.salePrice;
+        } else {
+          try {
+            salePriceInEUR = await convert(q.salePrice, saleCurrency, "EUR");
+          } catch (e) {
+            // FX failure fallback
+          }
+        }
+      }
+
+      // Convert found price to EUR if needed
+      if (totalFoundPrice != null) {
+        if (foundCurrency === "EUR") {
+          foundPriceInEUR = totalFoundPrice;
+        } else {
+          try {
+            foundPriceInEUR = await convert(
+              totalFoundPrice,
+              foundCurrency,
+              "EUR",
+            );
+          } catch (e) {
+            // FX failure fallback
+          }
+        }
+      }
+
+      if (q.foundPrice == null || q.salePrice == null) {
         return {
           ...q,
-          profitLoss: q.salePrice - q.foundPrice,
-          profitLossCurrency: saleCurrency,
+          profitLoss: null,
+          profitLossCurrency: null,
+          salePriceInEUR,
+          foundPriceInEUR,
         };
       }
 
-      // Cross-currency: convert foundPrice to saleCurrency
-      try {
-        const converted = await convert(q.foundPrice, foundCurrency, saleCurrency);
-        if (converted != null) {
-          return {
-            ...q,
-            profitLoss: q.salePrice - converted,
-            profitLossCurrency: saleCurrency,
-          };
-        }
-      } catch (e) {
-        // FX failure — graceful fallback
+      // Calculate profit/loss in EUR normalization
+      let profitLoss = null;
+      let profitLossCurrency = "EUR";
+
+      if (salePriceInEUR != null && foundPriceInEUR != null) {
+        profitLoss = salePriceInEUR - foundPriceInEUR;
       }
 
-      return { ...q, profitLoss: null, profitLossCurrency: null };
-    })
+      return {
+        ...q,
+        profitLoss,
+        profitLossCurrency,
+        salePriceInEUR,
+        foundPriceInEUR,
+      };
+    }),
   );
 
   res.json(enriched);
@@ -102,10 +144,20 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { url, section, minSeats, maxPrice, salePrice, salePriceCurrency, orderNo } = req.body;
+    const {
+      url,
+      section,
+      minSeats,
+      maxPrice,
+      salePrice,
+      salePriceCurrency,
+      orderNo,
+    } = req.body;
 
     if (!url || !orderNo) {
-      return res.status(400).json({ error: "Missing required fields: url, orderNo" });
+      return res
+        .status(400)
+        .json({ error: "Missing required fields: url, orderNo" });
     }
 
     // Section: trim to null if empty (broad availability mode)
@@ -114,7 +166,9 @@ router.post("/", async (req, res) => {
     // Validate minSeats if provided
     const seats = minSeats ? parseInt(minSeats, 10) : 1;
     if (isNaN(seats) || seats < 1) {
-      return res.status(400).json({ error: "minSeats must be a positive integer" });
+      return res
+        .status(400)
+        .json({ error: "minSeats must be a positive integer" });
     }
 
     // Validate maxPrice (input is in EUR, stored as cents, null = no limit)
@@ -122,7 +176,9 @@ router.post("/", async (req, res) => {
     if (maxPrice) {
       const price = parseInt(maxPrice, 10);
       if (isNaN(price) || price < 1) {
-        return res.status(400).json({ error: "maxPrice must be a positive integer (in EUR, e.g. 200)" });
+        return res.status(400).json({
+          error: "maxPrice must be a positive integer (in EUR, e.g. 200)",
+        });
       }
       maxPriceCents = price * 100;
     }
@@ -132,7 +188,9 @@ router.post("/", async (req, res) => {
     if (salePrice) {
       const price = parseInt(salePrice, 10);
       if (isNaN(price) || price < 1) {
-        return res.status(400).json({ error: "salePrice must be a positive integer" });
+        return res
+          .status(400)
+          .json({ error: "salePrice must be a positive integer" });
       }
       salePriceCents = price * 100;
     }
@@ -140,7 +198,9 @@ router.post("/", async (req, res) => {
     // Validate salePriceCurrency (default EUR)
     const saleCurrency = salePriceCurrency?.toUpperCase() || "EUR";
     if (!SUPPORTED_SALE_CURRENCIES.includes(saleCurrency)) {
-      return res.status(400).json({ error: `salePriceCurrency must be one of: ${SUPPORTED_SALE_CURRENCIES.join(", ")}` });
+      return res.status(400).json({
+        error: `salePriceCurrency must be one of: ${SUPPORTED_SALE_CURRENCIES.join(", ")}`,
+      });
     }
 
     // Parse the Ticketmaster URL
@@ -255,30 +315,39 @@ router.patch("/:id/purchase", async (req, res) => {
 // Edit a query
 router.patch("/:id", async (req, res) => {
   try {
-    const { section, minSeats, maxPrice, salePrice, salePriceCurrency, orderNo } = req.body;
-    
+    const {
+      section,
+      minSeats,
+      maxPrice,
+      salePrice,
+      salePriceCurrency,
+      orderNo,
+    } = req.body;
+
     const updateData = {};
     if (section !== undefined) updateData.section = section?.trim() || null;
     if (orderNo !== undefined) updateData.orderNo = orderNo;
-    
+
     if (minSeats !== undefined) {
       const parsedMin = parseInt(minSeats, 10);
       if (!isNaN(parsedMin) && parsedMin >= 1) updateData.minSeats = parsedMin;
     }
-    
+
     if (maxPrice !== undefined) {
       if (maxPrice) {
         const parsedMax = parseInt(maxPrice, 10);
-        if (!isNaN(parsedMax) && parsedMax >= 0) updateData.maxPrice = parsedMax * 100;
+        if (!isNaN(parsedMax) && parsedMax >= 0)
+          updateData.maxPrice = parsedMax * 100;
       } else {
         updateData.maxPrice = null;
       }
     }
-    
+
     if (salePrice !== undefined) {
       if (salePrice) {
         const parsedSale = parseInt(salePrice, 10);
-        if (!isNaN(parsedSale) && parsedSale >= 0) updateData.salePrice = parsedSale * 100;
+        if (!isNaN(parsedSale) && parsedSale >= 0)
+          updateData.salePrice = parsedSale * 100;
       } else {
         updateData.salePrice = null;
       }
@@ -291,10 +360,10 @@ router.patch("/:id", async (req, res) => {
         updateData.salePriceCurrency = cur;
       }
     }
-    
+
     const query = await prisma.query.update({
       where: { id: req.params.id },
-      data: updateData
+      data: updateData,
     });
     res.json(query);
   } catch (err) {
@@ -336,7 +405,7 @@ router.get("/:id/logs", async (req, res) => {
     const logs = await prisma.checkResult.findMany({
       where,
       orderBy: { checkedAt: "desc" },
-      take: 50,
+      take: 150,
     });
     res.json(logs);
   } catch (err) {

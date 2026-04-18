@@ -11,13 +11,13 @@ export function RootLayout() {
 
   const [selectedQuery, setSelectedQuery] = useState(null);
 
-  // Auto-refresh every 60 seconds
+  // Auto-refresh every 20 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       if (revalidator.state === "idle") {
         revalidator.revalidate();
       }
-    }, 60_000);
+    }, 20_000);
 
     return () => clearInterval(interval);
   }, [revalidator]);

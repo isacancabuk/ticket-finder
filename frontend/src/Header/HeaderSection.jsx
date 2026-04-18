@@ -19,7 +19,7 @@ const INPUTS = [
   {
     type: "text",
     name: "section",
-    placeholder: "Section No.",
+    placeholder: "Section No. (e.g. 101 102)",
     required: false,
   },
   {
@@ -42,11 +42,7 @@ const INPUTS = [
   },
 ];
 
-const CURRENCY_OPTIONS = [
-  { code: "EUR" },
-  { code: "GBP" },
-  { code: "USD" },
-];
+const CURRENCY_OPTIONS = [{ code: "EUR" }, { code: "GBP" }, { code: "USD" }];
 
 export default function HeaderSection() {
   const actionData = useActionData();
@@ -82,7 +78,7 @@ export default function HeaderSection() {
 
     try {
       const res = await apiFetch(
-        `/queries/manifest-sections?url=${encodeURIComponent(currentUrl)}`
+        `/queries/manifest-sections?url=${encodeURIComponent(currentUrl)}`,
       );
 
       if (!res.ok) {
@@ -102,19 +98,24 @@ export default function HeaderSection() {
 
   const handleSectionSelect = useCallback((code) => {
     if (sectionInputRef.current) {
+      // Get current value
+      const currentValue = sectionInputRef.current.value.trim();
+      // Add new section (space-separated)
+      const newValue = currentValue ? `${currentValue} ${code}` : code;
+
       // Set the native input value
       const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
         window.HTMLInputElement.prototype,
-        "value"
+        "value",
       ).set;
-      nativeInputValueSetter.call(sectionInputRef.current, code);
+      nativeInputValueSetter.call(sectionInputRef.current, newValue);
 
       // Dispatch input event so React picks up the change
       sectionInputRef.current.dispatchEvent(
-        new Event("input", { bubbles: true })
+        new Event("input", { bubbles: true }),
       );
     }
-    setPickerOpen(false);
+    // Keep picker open - don't call setPickerOpen(false)
   }, []);
 
   const handlePickerClose = useCallback(() => {
@@ -158,7 +159,11 @@ export default function HeaderSection() {
         ))}
 
         {/* Bölümler helper button — row 1, rightmost */}
-        <div className="col-span-1" style={{ position: "relative" }} ref={helperBtnRef}>
+        <div
+          className="col-span-1"
+          style={{ position: "relative" }}
+          ref={helperBtnRef}
+        >
           <button
             type="button"
             disabled={!hasUrl || pickerLoading}
@@ -181,9 +186,7 @@ export default function HeaderSection() {
               justifyContent: "center",
               gap: "6px",
               padding: "0 12px",
-              boxShadow: hasUrl
-                ? "0 2px 4px rgba(48, 91, 206, 0.15)"
-                : "none",
+              boxShadow: hasUrl ? "0 2px 4px rgba(48, 91, 206, 0.15)" : "none",
             }}
           >
             {pickerLoading ? (
@@ -217,13 +220,15 @@ export default function HeaderSection() {
             placeholder="Section No."
             required={false}
           />
-          <p style={{
-            fontSize: "10px",
-            color: "#999",
-            marginTop: "4px",
-            textAlign: "center",
-            letterSpacing: "0.2px",
-          }}>
+          <p
+            style={{
+              fontSize: "10px",
+              color: "#999",
+              marginTop: "4px",
+              textAlign: "center",
+              letterSpacing: "0.2px",
+            }}
+          >
             Boş: Tüm bölümler
           </p>
         </div>
@@ -238,29 +243,33 @@ export default function HeaderSection() {
                 required={input.required !== false}
               />
               {input.name === "minSeats" && (
-                <p style={{
-                  fontSize: "10px",
-                  color: "#999",
-                  marginTop: "4px",
-                  textAlign: "center",
-                  letterSpacing: "0.2px",
-                }}>
+                <p
+                  style={{
+                    fontSize: "10px",
+                    color: "#999",
+                    marginTop: "4px",
+                    textAlign: "center",
+                    letterSpacing: "0.2px",
+                  }}
+                >
                   Tüm ve Floor arama için: 1
                 </p>
               )}
               {input.name === "maxPrice" && (
-                <p style={{
-                  fontSize: "10px",
-                  color: "#999",
-                  marginTop: "4px",
-                  textAlign: "center",
-                  letterSpacing: "0.2px",
-                }}>
+                <p
+                  style={{
+                    fontSize: "10px",
+                    color: "#999",
+                    marginTop: "4px",
+                    textAlign: "center",
+                    letterSpacing: "0.2px",
+                  }}
+                >
                   Boş: Herhangi fiyat
                 </p>
               )}
             </div>
-          )
+          ),
         )}
 
         {/* Sale Price + Currency Picker */}
@@ -283,9 +292,8 @@ export default function HeaderSection() {
                 borderRadius: "10px",
                 border: "2px solid rgb(200, 200, 200)",
                 backgroundColor: "transparent",
-                color: "inherit",
-                fontSize: "13px",
-                fontWeight: "600",
+                color: "rgb(100, 100, 100)",
+                fontSize: "14px",
                 fontFamily: "'Segoe UI', sans-serif",
                 cursor: "pointer",
                 textAlign: "center",
@@ -295,7 +303,9 @@ export default function HeaderSection() {
               }}
             >
               {CURRENCY_OPTIONS.map((c) => (
-                <option key={c.code} value={c.code}>{c.code}</option>
+                <option key={c.code} value={c.code}>
+                  {c.code}
+                </option>
               ))}
             </select>
           </div>

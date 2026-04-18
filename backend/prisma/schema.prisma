@@ -53,6 +53,7 @@ model Query {
   eventName         String?
   eventLocation     String?                      // city/locality from LD+JSON
   eventDate         String?                      // date portion of startDate
+  foundSection      String?                      // populated when tickets are found
 
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
@@ -74,6 +75,7 @@ model CheckResult {
   isAvailable   Boolean
   foundPrice    Int?                         // price snapshot at check time (cents)
   priceExceeded Boolean       @default(false)
+  foundSection  String?                      // section(s) where tickets were found
 
   eventName     String?
   httpStatus    Int?

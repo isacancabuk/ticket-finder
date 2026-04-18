@@ -1,11 +1,11 @@
 import axios from "axios";
 import { normalizeError } from "./src/utils/normalizeError.js";
+import { sortManifestSections } from "./src/utils/classifyManifestSection.js";
 
 const TM_DE_COOKIE = process.env.TM_DE_COOKIE || "";
 
 const headersDE = {
-  "User-Agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+  "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
   Accept: "application/json, text/plain, */*",
   Referer: "https://www.ticketmaster.de/",
   Origin: "https://www.ticketmaster.de",
@@ -16,10 +16,14 @@ const headersDE = {
  * Fetches the manifest for a Ticketmaster DE event and extracts
  * section code + name pairs.
  *
- * Sections are sorted so that string-based / non-numeric codes
- * (e.g. STR, STL, GCL, ET) appear first, followed by numeric codes
- * sorted numerically. This puts floor/GA entries near the top of
- * the list.
+ * Sections are sorted by semantic priority:
+ * 1. Floor/Standing/Special premium areas (e.g., Stehplatz)
+ * 2. Other named special areas (e.g., Loge, Box, Club)
+ * 3. Non-numeric codes
+ * 4. Numeric seating sections (sorted numerically)
+ * 5. Unknown items
+ *
+ * This prioritizes areas that are harder for users to guess manually.
  *
  * @param {object} opts
  * @param {string} opts.eventId - Numeric event ID
@@ -49,31 +53,10 @@ export async function fetchDEManifestSections({ eventId, domain = "de" }) {
       .filter((s) => s.code && s.name)
       .map((s) => ({ code: s.code, name: s.name }));
 
-    // Sort: non-numeric codes first, then numeric codes.
-    // Within non-numeric: short codes (ET, GCL, GCR) first,
-    // then Stehplatz (ST*), then Loge (L*).
-    function sortGroup(code) {
-      if (/^\d+$/.test(code)) return 3;       // numeric → last
-      if (/^L\d/i.test(code)) return 2;       // Loge (L001…) → after Stehplatz
-      if (/^ST/i.test(code)) return 1;        // Stehplatz (STL, STR) → after short codes
-      return 0;                               // everything else (ET, GCL, GCR) → first
-    }
+    // Sort using semantic classification helper
+    const sorted = sortManifestSections(sections);
 
-    sections.sort((a, b) => {
-      const gA = sortGroup(a.code);
-      const gB = sortGroup(b.code);
-      if (gA !== gB) return gA - gB;
-
-      // Both numeric → sort numerically
-      if (gA === 3) {
-        return parseInt(a.code, 10) - parseInt(b.code, 10);
-      }
-
-      // Same group → alphabetically
-      return a.code.localeCompare(b.code);
-    });
-
-    return { success: true, sections };
+    return { success: true, sections: sorted };
   } catch (err) {
     const normalized = normalizeError(err);
     return {
