@@ -3,7 +3,6 @@ import { useLoaderData, useRevalidator } from "react-router-dom";
 import HeaderSection from "./Header/HeaderSection";
 import MainSection from "./Main/MainSection";
 import QueryModal from "./Main/QueryModal";
-import "./index.css";
 
 export function RootLayout() {
   const queries = useLoaderData();
@@ -11,18 +10,18 @@ export function RootLayout() {
 
   const [selectedQuery, setSelectedQuery] = useState(null);
 
-  // Auto-refresh every 20 seconds
+  // Auto-refresh every 10 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       if (revalidator.state === "idle") {
         revalidator.revalidate();
       }
-    }, 20_000);
+    }, 10_000);
 
     return () => clearInterval(interval);
   }, [revalidator]);
 
-  // Keep selectedQuery in sync with fresh data after revalidation
+  // Keep selectedQuery in sync with fresh data after revalidation or change in queries
   useEffect(() => {
     if (selectedQuery) {
       const updated = queries.find((q) => q.id === selectedQuery.id);
@@ -44,7 +43,7 @@ export function RootLayout() {
   }, []);
 
   return (
-    <main className="min-h-screen w-full flex flex-col items-center">
+    <main className="min-h-screen w-full flex flex-col items-center bg-[#e8e8e8] text-[rgb(100,100,100)]">
       <HeaderSection />
       <MainSection queries={queries} onCardClick={handleCardClick} />
       {selectedQuery && (

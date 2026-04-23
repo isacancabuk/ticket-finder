@@ -1,3 +1,10 @@
+/**
+ * Determines whether to notify based on the query result.
+ *
+ * @param {object} result - Result from runQuery()
+ * @returns {{shouldNotify: boolean, reason: string|null}}
+ */
+
 export function buildNotificationDecision(result) {
   if (result.errorCategory) {
     return { shouldNotify: false, reason: "HAS_ERROR" };

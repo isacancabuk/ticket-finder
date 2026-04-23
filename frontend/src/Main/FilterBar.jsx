@@ -12,36 +12,20 @@ const STATUSES = [
   { label: "Alındı", value: "PURCHASED" },
 ];
 
-export default function FilterBar({ onFilterChange }) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState("Tümü");
-  const [selectedSite, setSelectedSite] = useState("Tümü");
-  const [sortDateAsc, setSortDateAsc] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState("ALL");
+export default function FilterBar({ filterState, onFilterChange }) {
+  const {
+    searchQuery,
+    selectedCountry,
+    selectedSite,
+    sortDateAsc,
+    selectedStatus,
+  } = filterState;
 
   // Dropdown states
   const [openDropdown, setOpenDropdown] = useState(null);
   const countryRef = useRef(null);
   const siteRef = useRef(null);
   const statusRef = useRef(null);
-
-  // Notify parent of filter changes
-  useEffect(() => {
-    onFilterChange({
-      searchQuery,
-      selectedCountry,
-      selectedSite,
-      sortDateAsc,
-      selectedStatus,
-    });
-  }, [
-    searchQuery,
-    selectedCountry,
-    selectedSite,
-    sortDateAsc,
-    selectedStatus,
-    onFilterChange,
-  ]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -72,6 +56,20 @@ export default function FilterBar({ onFilterChange }) {
     setOpenDropdown(openDropdown === "status" ? null : "status");
   };
 
+  const handleChange = (changes) => {
+    onFilterChange((prev) => ({ ...prev, ...changes }));
+  };
+
+  const handleClearFilters = () => {
+    onFilterChange({
+      searchQuery: "",
+      selectedCountry: "Tümü",
+      selectedSite: "Tümü",
+      sortDateAsc: false,
+      selectedStatus: "ALL",
+    });
+  };
+
   return (
     <div className={styles.filterContainer}>
       {/* Top Row: Search */}
@@ -81,8 +79,16 @@ export default function FilterBar({ onFilterChange }) {
           className={styles.searchInput}
           placeholder="Order No. veya Etkinlik Adı ile ara..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => handleChange({ searchQuery: e.target.value })}
         />
+        <button
+          type="button"
+          className={styles.clearButton}
+          onClick={handleClearFilters}
+          title="Filtreleri Temizle"
+        >
+          Temizle
+        </button>
       </div>
 
       {/* Bottom Row: Filters and Sort */}
@@ -103,7 +109,7 @@ export default function FilterBar({ onFilterChange }) {
                     selectedCountry === country ? styles.active : ""
                   }`}
                   onClick={() => {
-                    setSelectedCountry(country);
+                    handleChange({ selectedCountry: country });
                     setOpenDropdown(null);
                   }}
                 >
@@ -130,11 +136,11 @@ export default function FilterBar({ onFilterChange }) {
                     selectedSite === site ? styles.active : ""
                   }`}
                   onClick={() => {
-                    setSelectedSite(site);
+                    handleChange({ selectedSite: site });
                     setOpenDropdown(null);
                   }}
                 >
-                  {site === "Tümü" ? "Tümü" : "Ticketmaster"}
+                  {site === "Tümü" ? "Tümü" : "ticketmaster"}
                 </button>
               ))}
             </div>
@@ -146,7 +152,7 @@ export default function FilterBar({ onFilterChange }) {
           <div className={styles.filterLabel}>Tarih</div>
           <button
             className={styles.filterButton}
-            onClick={() => setSortDateAsc(!sortDateAsc)}
+            onClick={() => handleChange({ sortDateAsc: !sortDateAsc })}
             title="Sıralama yönünü değiştirmek için tıklayın"
           >
             {sortDateAsc ? "↑" : "↓"}
@@ -172,7 +178,7 @@ export default function FilterBar({ onFilterChange }) {
                     selectedStatus === status.value ? styles.active : ""
                   }`}
                   onClick={() => {
-                    setSelectedStatus(status.value);
+                    handleChange({ selectedStatus: status.value });
                     setOpenDropdown(null);
                   }}
                 >

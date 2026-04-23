@@ -1,48 +1,12 @@
-import { Form, useActionData, useNavigation } from "react-router-dom";
 import { useEffect, useRef, useState, useCallback } from "react";
+import { Form, useActionData, useNavigation } from "react-router-dom";
 import Input from "./Input";
 import Button from "./Button";
 import SectionPicker from "./SectionPicker";
 import { apiFetch } from "../api";
+import styles from "./HeaderSection.module.css";
 
-const INPUTS = [
-  {
-    type: "text",
-    name: "orderNo",
-    placeholder: "Order No.",
-  },
-  {
-    type: "url",
-    name: "url",
-    placeholder: "Event URL",
-  },
-  {
-    type: "text",
-    name: "section",
-    placeholder: "Section No. (e.g. 101 102)",
-    required: false,
-  },
-  {
-    type: "number",
-    name: "minSeats",
-    placeholder: "Min. Koltuk",
-    required: false,
-  },
-  {
-    type: "number",
-    name: "maxPrice",
-    placeholder: "Max. Fiyat",
-    required: false,
-  },
-  {
-    type: "number",
-    name: "salePrice",
-    placeholder: "Satış Fiyatı",
-    required: false,
-  },
-];
-
-const CURRENCY_OPTIONS = [{ code: "EUR" }, { code: "GBP" }, { code: "USD" }];
+const CURRENCY_OPTIONS = ["EUR", "GBP", "USD"];
 
 export default function HeaderSection() {
   const actionData = useActionData();
@@ -51,15 +15,16 @@ export default function HeaderSection() {
   const formRef = useRef(null);
   const urlInputRef = useRef(null);
   const sectionInputRef = useRef(null);
-  const helperBtnRef = useRef(null);
 
   // Picker state
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerSections, setPickerSections] = useState([]);
+  const [pickerSelectedCodes, setPickerSelectedCodes] = useState([]);
   const [pickerLoading, setPickerLoading] = useState(false);
   const [pickerError, setPickerError] = useState(null);
   const [urlValue, setUrlValue] = useState("");
 
+  // Reset form after successful submission
   useEffect(() => {
     if (navigation.state === "idle" && actionData && !actionData.error) {
       formRef.current?.reset();
@@ -67,9 +32,17 @@ export default function HeaderSection() {
     }
   }, [navigation.state, actionData]);
 
+  // Fetch sections from manifest API
   const handleHelperClick = useCallback(async () => {
     const currentUrl = urlInputRef.current?.value?.trim();
     if (!currentUrl) return;
+
+    const currentSectionVal = sectionInputRef.current?.value || "";
+    const currentCodes = currentSectionVal
+      .split(/[\s,]+/)
+      .map((c) => c.trim().toUpperCase())
+      .filter(Boolean);
+    setPickerSelectedCodes(currentCodes);
 
     setPickerOpen(true);
     setPickerLoading(true);
@@ -96,12 +69,23 @@ export default function HeaderSection() {
     }
   }, []);
 
+  // Add section code to input
   const handleSectionSelect = useCallback((code) => {
     if (sectionInputRef.current) {
       // Get current value
-      const currentValue = sectionInputRef.current.value.trim();
+      const currentValue = sectionInputRef.current.value;
+      const currentCodes = currentValue
+        .split(/[\s,]+/)
+        .map((c) => c.trim().toUpperCase())
+        .filter(Boolean);
+
+      // If already selected, do nothing
+      if (currentCodes.includes(code.toUpperCase())) {
+        return;
+      }
+
       // Add new section (space-separated)
-      const newValue = currentValue ? `${currentValue} ${code}` : code;
+      const newValue = currentValue.trim() ? `${currentValue.trim()} ${code}` : code;
 
       // Set the native input value
       const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
@@ -114,8 +98,10 @@ export default function HeaderSection() {
       sectionInputRef.current.dispatchEvent(
         new Event("input", { bubbles: true }),
       );
+
+      // Update picker selected state
+      setPickerSelectedCodes((prev) => [...prev, code.toUpperCase()]);
     }
-    // Keep picker open - don't call setPickerOpen(false)
   }, []);
 
   const handlePickerClose = useCallback(() => {
@@ -134,66 +120,39 @@ export default function HeaderSection() {
         <input type="hidden" name="_action" value="create" />
 
         {/* Row 1: Order No. | Event URL (3 cols) | Bölümler helper */}
-        {INPUTS.filter((i) => i.name === "orderNo").map((input) => (
-          <div key={input.name} className="col-span-1">
-            <Input
-              type={input.type}
-              name={input.name}
-              placeholder={input.placeholder}
-              required={input.required !== false}
-            />
-          </div>
-        ))}
+        <div className="col-span-1">
+          <Input
+            type="text"
+            name="orderNo"
+            placeholder="Order No."
+            required={true}
+          />
+        </div>
 
-        {INPUTS.filter((i) => i.name === "url").map((input) => (
-          <div key={input.name} className="col-span-3">
-            <Input
-              ref={urlInputRef}
-              type={input.type}
-              name={input.name}
-              placeholder={input.placeholder}
-              required={input.required !== false}
-              onChange={(e) => setUrlValue(e.target.value)}
-            />
-          </div>
-        ))}
+        <div className="col-span-3">
+          <Input
+            ref={urlInputRef}
+            type="url"
+            name="url"
+            placeholder="Event URL"
+            required={true}
+            onChange={(e) => setUrlValue(e.target.value)}
+          />
+        </div>
 
         {/* Bölümler helper button — row 1, rightmost */}
-        <div
-          className="col-span-1"
-          style={{ position: "relative" }}
-          ref={helperBtnRef}
-        >
+        <div className="col-span-1" style={{ position: "relative" }}>
           <button
             type="button"
             disabled={!hasUrl || pickerLoading}
             onClick={handleHelperClick}
-            style={{
-              width: "100%",
-              height: "52px",
-              borderRadius: "10px",
-              border: "2px solid rgb(200, 200, 200)",
-              background: hasUrl ? "#305bce" : "transparent",
-              color: hasUrl ? "#fff" : "rgb(150, 150, 150)",
-              fontSize: "13px",
-              fontWeight: 600,
-              cursor: hasUrl ? "pointer" : "not-allowed",
-              opacity: hasUrl ? 1 : 0.5,
-              transition: "all 0.2s ease",
-              letterSpacing: "0.3px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-              padding: "0 12px",
-              boxShadow: hasUrl ? "0 2px 4px rgba(48, 91, 206, 0.15)" : "none",
-            }}
+            className={`${styles.helperButton} ${hasUrl ? styles.hasUrl : ""}`}
           >
             {pickerLoading ? (
               "Yükleniyor..."
             ) : (
               <>
-                <span style={{ fontSize: "16px" }}>☰</span>
+                <span className={styles.helperIcon}>☰</span>
                 <span>Bölümler</span>
               </>
             )}
@@ -203,6 +162,7 @@ export default function HeaderSection() {
           {pickerOpen && (
             <SectionPicker
               sections={pickerSections}
+              selectedCodes={pickerSelectedCodes}
               loading={pickerLoading}
               error={pickerError}
               onSelect={handleSectionSelect}
@@ -220,57 +180,34 @@ export default function HeaderSection() {
             placeholder="Section No."
             required={false}
           />
-          <p
-            style={{
-              fontSize: "10px",
-              color: "#999",
-              marginTop: "4px",
-              textAlign: "center",
-              letterSpacing: "0.2px",
-            }}
-          >
+          <p className={styles.helperText}>
             Boş: Tüm bölümler
           </p>
         </div>
 
-        {INPUTS.filter((i) => ["minSeats", "maxPrice"].includes(i.name)).map(
-          (input) => (
-            <div key={input.name} className="col-span-1">
-              <Input
-                type={input.type}
-                name={input.name}
-                placeholder={input.placeholder}
-                required={input.required !== false}
-              />
-              {input.name === "minSeats" && (
-                <p
-                  style={{
-                    fontSize: "10px",
-                    color: "#999",
-                    marginTop: "4px",
-                    textAlign: "center",
-                    letterSpacing: "0.2px",
-                  }}
-                >
-                  Tüm ve Floor arama için: 1
-                </p>
-              )}
-              {input.name === "maxPrice" && (
-                <p
-                  style={{
-                    fontSize: "10px",
-                    color: "#999",
-                    marginTop: "4px",
-                    textAlign: "center",
-                    letterSpacing: "0.2px",
-                  }}
-                >
-                  Boş: Herhangi fiyat
-                </p>
-              )}
-            </div>
-          ),
-        )}
+        <div className="col-span-1">
+          <Input
+            type="number"
+            name="minSeats"
+            placeholder="Min. Koltuk"
+            required={false}
+          />
+          <p className={styles.helperText}>
+            Tüm ve Floor arama için: 1
+          </p>
+        </div>
+
+        <div className="col-span-1">
+          <Input
+            type="number"
+            name="maxPrice"
+            placeholder="Max. Fiyat"
+            required={false}
+          />
+          <p className={styles.helperText}>
+            Boş: Herhangi fiyat
+          </p>
+        </div>
 
         {/* Sale Price + Currency Picker */}
         <div className="col-span-1">
@@ -286,25 +223,11 @@ export default function HeaderSection() {
             <select
               name="salePriceCurrency"
               defaultValue="EUR"
-              style={{
-                width: "52px",
-                padding: "0",
-                borderRadius: "10px",
-                border: "2px solid rgb(200, 200, 200)",
-                backgroundColor: "transparent",
-                color: "rgb(100, 100, 100)",
-                fontSize: "14px",
-                fontFamily: "'Segoe UI', sans-serif",
-                cursor: "pointer",
-                textAlign: "center",
-                outline: "none",
-                appearance: "none",
-                WebkitAppearance: "none",
-              }}
+              className={styles.currencySelect}
             >
               {CURRENCY_OPTIONS.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.code}
+                <option key={c} value={c}>
+                  {c}
                 </option>
               ))}
             </select>
@@ -312,7 +235,7 @@ export default function HeaderSection() {
         </div>
 
         <div className="col-span-1 flex">
-          <Button disabled={isSubmitting} className="w-full h-[52px]">
+          <Button disabled={isSubmitting}>
             {isSubmitting ? "İşleniyor..." : "İstek Başlat"}
           </Button>
         </div>

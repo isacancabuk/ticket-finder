@@ -14,6 +14,7 @@
  * @param {object} item - { code: string, name: string }
  * @returns {number} - Priority value (lower = higher priority, appears first)
  */
+
 export function classifySectionPriority(item) {
   if (!item || !item.code || !item.name) return 4;
 

@@ -1,9 +1,17 @@
 import prisma from "../prisma.js";
 import { fetchDE } from "../../fetch-de.js";
 import { fetchES } from "../../fetch-es.js";
-import { DOMAIN_CURRENCY } from "../utils/currencyConfig.js";
-import { convert } from "./fxService.js";
-// UK varsa import edilecek
+import {
+  normalizePricesToEUR,
+  calculateProfitLoss,
+} from "../utils/enrichQueryResponse.js";
+
+/**
+ * Executes a query and updates the database with the result.
+ *
+ * @param {string} queryId - ID of the query to run
+ * @returns {Promise<void>}
+ */
 
 export async function runQuery(queryId) {
   const query = await prisma.query.findUnique({
@@ -75,7 +83,18 @@ export async function runQuery(queryId) {
 
       // Merge results: if any section found tickets, mark as found
       if (sectionResult.success) {
-        mergedResult.success = true;
+        if (!mergedResult.success) {
+          // Reset mergedResult back to a clean success state in case it was overwritten by a previous error
+          mergedResult = {
+            success: true,
+            isAvailable: false,
+            foundPrice: null,
+            priceExceeded: false,
+            foundSections: [],
+          };
+        } else {
+          mergedResult.success = true;
+        }
 
         // Track priceExceeded independently: if ANY section has price exceeded, mark it
         if (sectionResult.priceExceeded) {
@@ -140,16 +159,16 @@ export async function runQuery(queryId) {
   const latencyMs = Date.now() - start;
 
   let newStatus = "ERROR";
-  let isAvailable = false;
-  let foundPrice = null;
-  let priceExceeded = false;
+  let isAvailable = query.isAvailable ?? false;
+  let foundPrice = query.foundPrice ?? null;
+  let priceExceeded = query.priceExceeded ?? false;
+  let foundSectionStr = query.foundSection ?? null;
   let httpStatus = null;
   let errorMessage = null;
   let errorCategory = null;
-  let foundSectionStr = null;
 
   if (result.success) {
-    isAvailable = result.isAvailable;
+    isAvailable = result.isAvailable ?? false;
     newStatus = result.isAvailable ? "FOUND" : "FINDING";
     foundPrice = result.foundPrice ?? null;
     priceExceeded = result.priceExceeded ?? false;
@@ -157,6 +176,8 @@ export async function runQuery(queryId) {
     // Format found sections string (deduplicate and join with comma)
     if (result.foundSections && result.foundSections.length > 0) {
       foundSectionStr = [...new Set(result.foundSections)].join(", ");
+    } else {
+      foundSectionStr = null;
     }
   } else {
     newStatus = "ERROR";
@@ -188,53 +209,12 @@ export async function runQuery(queryId) {
     });
 
     // EUR normalization for Telegram message
-    const foundCurrency = DOMAIN_CURRENCY[updatedQuery.domain] || "EUR";
-    const saleCurrency = updatedQuery.salePriceCurrency || "EUR";
-    const minSeats = updatedQuery.minSeats || 1;
-
-    let salePriceInEUR = null;
-    let foundPriceInEUR = null;
-    let profitLoss = null;
-
-    // Convert sale price to EUR if needed
-    if (updatedQuery.salePrice != null) {
-      if (saleCurrency === "EUR") {
-        salePriceInEUR = updatedQuery.salePrice;
-      } else {
-        try {
-          salePriceInEUR = await convert(
-            updatedQuery.salePrice,
-            saleCurrency,
-            "EUR",
-          );
-        } catch (e) {
-          // FX failure fallback
-        }
-      }
-    }
-
-    // Convert found price to EUR if needed (multiply by minSeats)
-    if (foundPrice != null) {
-      const totalFoundPrice = foundPrice * minSeats;
-      if (foundCurrency === "EUR") {
-        foundPriceInEUR = totalFoundPrice;
-      } else {
-        try {
-          foundPriceInEUR = await convert(
-            totalFoundPrice,
-            foundCurrency,
-            "EUR",
-          );
-        } catch (e) {
-          // FX failure fallback
-        }
-      }
-    }
-
-    // Calculate profit/loss in EUR
-    if (salePriceInEUR != null && foundPriceInEUR != null) {
-      profitLoss = salePriceInEUR - foundPriceInEUR;
-    }
+    const { salePriceInEUR, foundPriceInEUR } =
+      await normalizePricesToEUR(updatedQuery);
+    const { profitLoss, profitLossCurrency } = calculateProfitLoss(
+      salePriceInEUR,
+      foundPriceInEUR,
+    );
 
     // Log kaydı
     await prisma.checkResult.create({
@@ -259,7 +239,7 @@ export async function runQuery(queryId) {
         salePriceInEUR,
         foundPriceInEUR,
         profitLoss,
-        profitLossCurrency: "EUR",
+        profitLossCurrency,
       },
       previousStatus: query.status,
       previousIsAvailable: query.isAvailable,

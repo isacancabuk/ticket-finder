@@ -96,6 +96,15 @@
   background-color: rgba(48, 91, 206, 0.12);
 }
 
+.selectedItem {
+  background-color: rgba(48, 91, 206, 0.04);
+  box-shadow: inset 3px 0 0 #305bce;
+}
+
+.selectedItem:hover {
+  background-color: rgba(48, 91, 206, 0.08);
+}
+
 .pickerName {
   font-size: 13px;
   color: #444;
@@ -117,6 +126,12 @@
   padding: 2px 8px;
   border-radius: 4px;
   letter-spacing: 0.3px;
+  transition: all 0.15s ease;
+}
+
+.selectedCode {
+  background: #305bce;
+  color: #fff;
 }
 
 .pickerArrow {
@@ -124,6 +139,13 @@
   color: #aaa;
   margin: 0 8px;
   flex-shrink: 0;
+}
+
+.checkIcon {
+  color: #305bce;
+  font-weight: 700;
+  font-size: 12px;
+  margin-left: 8px;
 }
 
 .pickerEmpty {

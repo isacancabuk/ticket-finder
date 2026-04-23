@@ -10,6 +10,7 @@ import prisma from "../prisma.js";
  *
  * @returns {Promise<import("@prisma/client").Query | null>}
  */
+
 export async function getNextQueryToRun() {
   return prisma.query.findFirst({
     where: {

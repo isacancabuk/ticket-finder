@@ -1,18 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import styles from "./SectionPicker.module.css";
 
-/**
- * SectionPicker — compact dropdown showing section code + name pairs.
- *
- * @param {Array<{code: string, name: string}>} sections - Sorted sections list
- * @param {boolean} loading - Whether the manifest fetch is in progress
- * @param {string|null} error - Error message from fetch, if any
- * @param {function} onSelect - Called with the selected section code
- * @param {function} onClose - Called when the picker should close
- */
-export default function SectionPicker({ sections, loading, error, onSelect, onClose }) {
-  const dropdownRef = useRef(null);
-
+export default function SectionPicker({ sections, selectedCodes = [], loading, error, onSelect, onClose }) {
   // Close on Escape key
   useEffect(() => {
     function handleKeyDown(e) {
@@ -29,7 +18,7 @@ export default function SectionPicker({ sections, loading, error, onSelect, onCl
       {/* Invisible overlay to catch clicks outside */}
       <div className={styles.pickerOverlay} onClick={onClose} />
 
-      <div className={styles.pickerDropdown} ref={dropdownRef}>
+      <div className={styles.pickerDropdown}>
         {/* Header */}
         <div className={styles.pickerHeader}>
           <span className={styles.pickerTitle}>Bölüm Seç</span>
@@ -51,18 +40,24 @@ export default function SectionPicker({ sections, loading, error, onSelect, onCl
           <div className={styles.pickerEmpty}>Bölüm bulunamadı</div>
         ) : (
           <div className={styles.pickerList}>
-            {sections.map((s) => (
-              <button
-                key={s.code}
-                type="button"
-                className={styles.pickerItem}
-                onClick={() => onSelect(s.code)}
-              >
-                <span className={styles.pickerName}>{s.name}</span>
-                <span className={styles.pickerArrow}>→</span>
-                <span className={styles.pickerCode}>{s.code}</span>
-              </button>
-            ))}
+            {sections.map((s) => {
+              const isSelected = selectedCodes.includes(s.code.toUpperCase());
+              return (
+                <button
+                  key={s.code}
+                  type="button"
+                  className={`${styles.pickerItem} ${isSelected ? styles.selectedItem : ""}`}
+                  onClick={() => onSelect(s.code)}
+                >
+                  <span className={styles.pickerName}>{s.name}</span>
+                  {isSelected && <span className={styles.checkIcon}>✓</span>}
+                  <span className={styles.pickerArrow}>→</span>
+                  <span className={`${styles.pickerCode} ${isSelected ? styles.selectedCode : ""}`}>
+                    {s.code}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

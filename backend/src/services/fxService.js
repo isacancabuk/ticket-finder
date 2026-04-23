@@ -67,6 +67,7 @@ async function ensureRates(base = "EUR") {
  * @param {string} to   - ISO 4217 code (e.g. "EUR")
  * @returns {Promise<number|null>}
  */
+
 export async function getRate(from, to) {
   if (from === to) return 1;
 

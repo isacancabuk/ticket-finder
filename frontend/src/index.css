@@ -1,12 +1,7 @@
 @import "tailwindcss";
 
-*{
+* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
-
-main{
-  background-color: #e8e8e8;
-  color: rgb(100, 100, 100);
 }

@@ -9,7 +9,7 @@ async function rootLoader() {
   return res.json();
 }
 
-// Action: handles create, stop, resume, delete
+// Action: handles create, stop, resume, delete, edit
 async function rootAction({ request }) {
   const formData = await request.formData();
   const intent = formData.get("_action");
@@ -73,15 +73,18 @@ async function rootAction({ request }) {
       salePriceCurrency: formData.get("salePriceCurrency"),
       orderNo: formData.get("orderNo"),
     };
+
     const res = await apiFetch(`/queries/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: "Unknown error" }));
       return { error: err.error || "Failed to edit query" };
     }
+    
     return { ok: true, edited: true };
   }
 

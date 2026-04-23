@@ -18,6 +18,7 @@
  *   retryable:    boolean,
  * }}
  */
+
 export function normalizeError(err) {
   const httpStatus = err.response?.status ?? null;
   const errorCode = err.code ?? null;

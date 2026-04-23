@@ -5,15 +5,15 @@ import { fetchEventMetadata } from "../utils/fetchEventMetadata.js";
 import { runQuery } from "../services/runQuery.js";
 import { fetchDEManifestSections } from "../../fetchDEManifestSections.js";
 import { fetchESManifestSections } from "../../fetchESManifestSections.js";
+import { SUPPORTED_SALE_CURRENCIES } from "../utils/currencyConfig.js";
 import {
-  SUPPORTED_SALE_CURRENCIES,
-  DOMAIN_CURRENCY,
-} from "../utils/currencyConfig.js";
-import { convert } from "../services/fxService.js";
+  normalizePricesToEUR,
+  calculateProfitLoss,
+} from "../utils/enrichQueryResponse.js";
 
 const router = express.Router();
 
-// ── Manifest sections helper (must be before /:id routes) ────
+// ── Manifest sections helper ────
 router.get("/manifest-sections", async (req, res) => {
   try {
     const { url } = req.query;
@@ -21,7 +21,7 @@ router.get("/manifest-sections", async (req, res) => {
     if (!url) {
       return res
         .status(400)
-        .json({ error: "Missing required query param: url" });
+        .json({ error: "Gerekli sorgu parametresi eksik: url" });
     }
 
     let parsed;
@@ -33,7 +33,7 @@ router.get("/manifest-sections", async (req, res) => {
 
     if (parsed.domain !== "DE" && parsed.domain !== "ES") {
       return res.status(400).json({
-        error: `Manifest sections helper is only supported for DE and ES domains, got: ${parsed.domain}`,
+        error: `Manifest bölümleri yardımcısı yalnızca DE ve ES etki alanları için desteklenir, alınan: ${parsed.domain}`,
       });
     }
 
@@ -57,84 +57,31 @@ router.get("/manifest-sections", async (req, res) => {
     res.json({ sections: result.sections });
   } catch (err) {
     console.error("[manifest-sections] Unexpected error:", err.message);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Dahili sunucu hatası" });
   }
 });
 
+// ── Get all queries (with DB data + enriched data) ────
 router.get("/", async (req, res) => {
   const queries = await prisma.query.findMany({
     orderBy: { createdAt: "desc" },
   });
 
-  // Enrich queries with computed profit/loss (FX-converted if needed) + EUR normalization
+  // Enrich queries with normalized prices and profit/loss
   const enriched = await Promise.all(
     queries.map(async (q) => {
-      const foundCurrency = DOMAIN_CURRENCY[q.domain] || "EUR";
-      const saleCurrency = q.salePriceCurrency || "EUR";
-      const minSeats = q.minSeats || 1;
-
-      // Calculate total found price for all seats
-      const totalFoundPrice =
-        q.foundPrice != null ? q.foundPrice * minSeats : null;
-
-      // Initialize EUR normalization
-      let salePriceInEUR = null;
-      let foundPriceInEUR = null;
-
-      // Convert sale price to EUR if needed
-      if (q.salePrice != null) {
-        if (saleCurrency === "EUR") {
-          salePriceInEUR = q.salePrice;
-        } else {
-          try {
-            salePriceInEUR = await convert(q.salePrice, saleCurrency, "EUR");
-          } catch (e) {
-            // FX failure fallback
-          }
-        }
-      }
-
-      // Convert found price to EUR if needed
-      if (totalFoundPrice != null) {
-        if (foundCurrency === "EUR") {
-          foundPriceInEUR = totalFoundPrice;
-        } else {
-          try {
-            foundPriceInEUR = await convert(
-              totalFoundPrice,
-              foundCurrency,
-              "EUR",
-            );
-          } catch (e) {
-            // FX failure fallback
-          }
-        }
-      }
-
-      if (q.foundPrice == null || q.salePrice == null) {
-        return {
-          ...q,
-          profitLoss: null,
-          profitLossCurrency: null,
-          salePriceInEUR,
-          foundPriceInEUR,
-        };
-      }
-
-      // Calculate profit/loss in EUR normalization
-      let profitLoss = null;
-      let profitLossCurrency = "EUR";
-
-      if (salePriceInEUR != null && foundPriceInEUR != null) {
-        profitLoss = salePriceInEUR - foundPriceInEUR;
-      }
+      const { salePriceInEUR, foundPriceInEUR } = await normalizePricesToEUR(q);
+      const { profitLoss, profitLossCurrency } = calculateProfitLoss(
+        salePriceInEUR,
+        foundPriceInEUR,
+      );
 
       return {
         ...q,
-        profitLoss,
-        profitLossCurrency,
         salePriceInEUR,
         foundPriceInEUR,
+        profitLoss,
+        profitLossCurrency,
       };
     }),
   );
@@ -142,6 +89,7 @@ router.get("/", async (req, res) => {
   res.json(enriched);
 });
 
+// ── Create a new query (with inputs + parsing + metadata) ────
 router.post("/", async (req, res) => {
   try {
     const {
@@ -157,7 +105,7 @@ router.post("/", async (req, res) => {
     if (!url || !orderNo) {
       return res
         .status(400)
-        .json({ error: "Missing required fields: url, orderNo" });
+        .json({ error: "Gerekli alanlar eksik: url, orderNo" });
     }
 
     // Section: trim to null if empty (broad availability mode)
@@ -168,7 +116,9 @@ router.post("/", async (req, res) => {
     if (isNaN(seats) || seats < 1) {
       return res
         .status(400)
-        .json({ error: "minSeats must be a positive integer" });
+        .json({
+          error: "Minimum koltuk sayısı pozitif bir tam sayı olmalıdır",
+        });
     }
 
     // Validate maxPrice (input is in EUR, stored as cents, null = no limit)
@@ -177,7 +127,8 @@ router.post("/", async (req, res) => {
       const price = parseInt(maxPrice, 10);
       if (isNaN(price) || price < 1) {
         return res.status(400).json({
-          error: "maxPrice must be a positive integer (in EUR, e.g. 200)",
+          error:
+            "Maksimum fiyat pozitif bir tam sayı olmalıdır (EUR cinsinden, örn. 200)",
         });
       }
       maxPriceCents = price * 100;
@@ -190,7 +141,7 @@ router.post("/", async (req, res) => {
       if (isNaN(price) || price < 1) {
         return res
           .status(400)
-          .json({ error: "salePrice must be a positive integer" });
+          .json({ error: "Satış fiyatı pozitif bir tam sayı olmalıdır" });
       }
       salePriceCents = price * 100;
     }
@@ -199,7 +150,7 @@ router.post("/", async (req, res) => {
     const saleCurrency = salePriceCurrency?.toUpperCase() || "EUR";
     if (!SUPPORTED_SALE_CURRENCIES.includes(saleCurrency)) {
       return res.status(400).json({
-        error: `salePriceCurrency must be one of: ${SUPPORTED_SALE_CURRENCIES.join(", ")}`,
+        error: `Satış fiyatı para birimi şunlardan biri olmalıdır: ${SUPPORTED_SALE_CURRENCIES.join(", ")}`,
       });
     }
 
@@ -211,16 +162,16 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: err.message });
     }
 
-    const { domain, eventId, eventSlug, eventName, eventUrl } = parsed;
+    const { site, domain, eventId, eventSlug, eventName, eventUrl } = parsed;
 
-    // Fetch event metadata (best-effort, non-blocking)
+    // Fetch event metadata
     const metadata = await fetchEventMetadata(eventUrl);
 
     try {
       const query = await prisma.query.create({
         data: {
           domain,
-          site: "TICKETMASTER",
+          site,
           eventId,
           eventSlug,
           eventName,
@@ -247,20 +198,21 @@ router.post("/", async (req, res) => {
   }
 });
 
+// ── Manuel run a query (trigger) ────
 router.post("/:id/run", async (req, res) => {
   try {
     const updatedQuery = await runQuery(req.params.id);
     res.json(updatedQuery);
   } catch (err) {
     if (err.message === "QUERY_NOT_FOUND") {
-      return res.status(404).json({ error: "Query not found" });
+      return res.status(404).json({ error: "Sorgu bulunamadı" });
     }
 
     if (err.message === "QUERY_STOPPED") {
-      return res.status(400).json({ error: "Query is stopped" });
+      return res.status(400).json({ error: "Sorgu durdurulmuş" });
     }
 
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Dahili sunucu hatası" });
   }
 });
 
@@ -274,9 +226,9 @@ router.patch("/:id/stop", async (req, res) => {
     res.json(query);
   } catch (err) {
     if (err.code === "P2025") {
-      return res.status(404).json({ error: "Query not found" });
+      return res.status(404).json({ error: "Sorgu bulunamadı" });
     }
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Dahili sunucu hatası" });
   }
 });
 
@@ -290,9 +242,9 @@ router.patch("/:id/resume", async (req, res) => {
     res.json(query);
   } catch (err) {
     if (err.code === "P2025") {
-      return res.status(404).json({ error: "Query not found" });
+      return res.status(404).json({ error: "Sorgu bulunamadı" });
     }
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Dahili sunucu hatası" });
   }
 });
 
@@ -306,9 +258,9 @@ router.patch("/:id/purchase", async (req, res) => {
     res.json(query);
   } catch (err) {
     if (err.code === "P2025") {
-      return res.status(404).json({ error: "Query not found" });
+      return res.status(404).json({ error: "Sorgu bulunamadı" });
     }
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Dahili sunucu hatası" });
   }
 });
 
@@ -325,49 +277,98 @@ router.patch("/:id", async (req, res) => {
     } = req.body;
 
     const updateData = {};
-    if (section !== undefined) updateData.section = section?.trim() || null;
-    if (orderNo !== undefined) updateData.orderNo = orderNo;
 
+    // ── Validate section ────
+    // Trim whitespace, allow null for broad availability
+    if (section !== undefined) {
+      updateData.section = section?.trim() || null;
+    }
+
+    // ── Validate orderNo ────
+    // Must not be empty or whitespace-only if provided
+    if (orderNo !== undefined) {
+      if (orderNo !== null && typeof orderNo === "string") {
+        const trimmedOrderNo = orderNo.trim();
+        if (!trimmedOrderNo) {
+          return res.status(400).json({ error: "Sipariş numarası boş olamaz" });
+        }
+        updateData.orderNo = trimmedOrderNo;
+      } else {
+        updateData.orderNo = orderNo;
+      }
+    }
+
+    // ── Validate minSeats ────
+    // Must be >= 1 if provided, set to null if cleared
     if (minSeats !== undefined) {
-      const parsedMin = parseInt(minSeats, 10);
-      if (!isNaN(parsedMin) && parsedMin >= 1) updateData.minSeats = parsedMin;
+      if (minSeats === null || minSeats === "") {
+        updateData.minSeats = null;
+      } else {
+        const parsedMin = parseInt(minSeats, 10);
+        if (isNaN(parsedMin) || parsedMin < 1) {
+          return res.status(400).json({
+            error: "Minimum koltuk sayısı 1'den büyük veya eşit olmalıdır",
+          });
+        }
+        updateData.minSeats = parsedMin;
+      }
     }
 
+    // ── Validate maxPrice ────
+    // Must be >= 1 if provided (in EUR), set to null if cleared
     if (maxPrice !== undefined) {
-      if (maxPrice) {
-        const parsedMax = parseInt(maxPrice, 10);
-        if (!isNaN(parsedMax) && parsedMax >= 0)
-          updateData.maxPrice = parsedMax * 100;
-      } else {
+      if (maxPrice === null || maxPrice === "") {
         updateData.maxPrice = null;
-      }
-    }
-
-    if (salePrice !== undefined) {
-      if (salePrice) {
-        const parsedSale = parseInt(salePrice, 10);
-        if (!isNaN(parsedSale) && parsedSale >= 0)
-          updateData.salePrice = parsedSale * 100;
       } else {
+        const parsedMax = parseInt(maxPrice, 10);
+        if (isNaN(parsedMax) || parsedMax < 1) {
+          return res.status(400).json({
+            error: "Fiyat 1'den büyük veya eşit olmalıdır",
+          });
+        }
+        updateData.maxPrice = parsedMax * 100;
+      }
+    }
+
+    // ── Validate salePrice ────
+    // Must be >= 1 if provided (in EUR, stored as cents), set to null if cleared
+    if (salePrice !== undefined) {
+      if (salePrice === null || salePrice === "") {
         updateData.salePrice = null;
+      } else {
+        const parsedSale = parseInt(salePrice, 10);
+        if (isNaN(parsedSale) || parsedSale < 1) {
+          return res.status(400).json({
+            error: "Fiyat 1'den büyük veya eşit olmalıdır",
+          });
+        }
+        updateData.salePrice = parsedSale * 100;
       }
     }
 
-    // Validate salePriceCurrency if provided
+    // ── Accept salePriceCurrency as-is (no validation needed) ────
     if (salePriceCurrency !== undefined) {
-      const cur = salePriceCurrency?.toUpperCase() || "EUR";
-      if (SUPPORTED_SALE_CURRENCIES.includes(cur)) {
-        updateData.salePriceCurrency = cur;
-      }
+      updateData.salePriceCurrency = salePriceCurrency?.toUpperCase() || "EUR";
     }
 
+    // ── Update database ────
     const query = await prisma.query.update({
       where: { id: req.params.id },
       data: updateData,
     });
+
     res.json(query);
   } catch (err) {
-    res.status(500).json({ error: "Internal server error" });
+    // Handle query not found
+    if (err.code === "P2025") {
+      return res.status(404).json({ error: "Sorgu bulunamadı" });
+    }
+
+    // Log unexpected errors
+    console.error("[PATCH /:id] Unexpected error:", err.message);
+
+    // Return 500 for database or other unexpected errors
+    res.status(500).json({ error: "Dahili sunucu hatası" });
   }
 });
 
@@ -380,9 +381,9 @@ router.delete("/:id", async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     if (err.code === "P2025") {
-      return res.status(404).json({ error: "Query not found" });
+      return res.status(404).json({ error: "Sorgu bulunamadı" });
     }
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Dahili sunucu hatası" });
   }
 });
 
@@ -409,7 +410,7 @@ router.get("/:id/logs", async (req, res) => {
     });
     res.json(logs);
   } catch (err) {
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Dahili sunucu hatası" });
   }
 });
 

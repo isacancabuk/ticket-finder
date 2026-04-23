@@ -154,31 +154,17 @@ export default function QueryModal({ query, onClose }) {
               </div>
               <div className={styles.editField}>
                 <label className={styles.editLabel}>Satış Fiyatı</label>
-                <div
-                  style={{ display: "flex", gap: "6px", alignItems: "stretch" }}
-                >
+                <div className={styles.currencyInputGroup}>
                   <input
                     type="number"
                     name="salePrice"
                     defaultValue={query.salePrice ? query.salePrice / 100 : ""}
-                    className={styles.editInput}
-                    style={{ flex: 1 }}
+                    className={`${styles.editInput} ${styles.currencyAmountInput}`}
                   />
                   <select
                     name="salePriceCurrency"
                     defaultValue={query.salePriceCurrency || "EUR"}
-                    className={styles.editInput}
-                    style={{
-                      width: "52px",
-                      flex: "none",
-                      padding: "0",
-                      textAlign: "center",
-                      fontWeight: "600",
-                      fontSize: "13px",
-                      cursor: "pointer",
-                      appearance: "none",
-                      WebkitAppearance: "none",
-                    }}
+                    className={`${styles.editInput} ${styles.currencySelect}`}
                   >
                     {CURRENCY_OPTIONS.map((c) => (
                       <option key={c.code} value={c.code}>
@@ -347,7 +333,6 @@ export default function QueryModal({ query, onClose }) {
                 <button
                   type="submit"
                   className={styles.btnPurchase}
-                  style={{ backgroundColor: "#2e8b57", color: "#fff" }}
                   disabled={isBusy}
                 >
                   Alındı
@@ -383,7 +368,6 @@ export default function QueryModal({ query, onClose }) {
             <button
               type="button"
               className={styles.btnEdit}
-              style={{ backgroundColor: "#aaa", color: "#fff" }}
               disabled={isBusy}
               onClick={() => setIsEditing(true)}
             >
@@ -448,6 +432,7 @@ export default function QueryModal({ query, onClose }) {
                       <th>Zaman</th>
                       <th>Durum</th>
                       <th>Fiyat</th>
+                      <th>Bulunan Bölüm</th>
                       <th>Mevcut</th>
                       <th>Gecikme</th>
                       <th>Hata</th>
@@ -467,10 +452,8 @@ export default function QueryModal({ query, onClose }) {
                           <td>{new Date(log.checkedAt).toLocaleString()}</td>
                           <td>{rowStatus}</td>
                           <td>{formatPrice(log.foundPrice, DOMAIN_CURRENCY[query.domain] || "EUR")}</td>
-                          <td>
-                            {log.isAvailable ? "Evet" : "Hayır"}
-                            {log.isAvailable && log.foundSection ? ` (Blok: ${log.foundSection})` : ""}
-                          </td>
+                          <td style={{ fontWeight: 600 }}>{log.foundSection || "–"}</td>
+                          <td>{log.isAvailable ? "Evet" : "Hayır"}</td>
                           <td>
                             {log.latencyMs != null ? `${log.latencyMs}ms` : "–"}
                           </td>

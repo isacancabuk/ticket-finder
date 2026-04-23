@@ -152,7 +152,7 @@ export default function Card({ query, onClick }) {
 
         <div className="flex flex-col items-center">
           {metaLine && <p className={styles.eventMeta}>{metaLine}</p>}
-          <p className="text-2xl font-bold">{eventName || "Unknown Event"}</p>
+          <p className="text-2xl font-bold text-center">{eventName || "Unknown Event"}</p>
           <p className="text-lg text-gray-500 font-bold">
             Section: {section || "Tümü"}
             {minSeats && minSeats > 1 ? ` x ${minSeats}` : ""}

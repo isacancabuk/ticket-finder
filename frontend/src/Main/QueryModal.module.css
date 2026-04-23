@@ -185,6 +185,11 @@
     cursor: not-allowed;
 }
 
+.btnPurchase {
+    background-color: #2e8b57;
+    color: #fff;
+}
+
 .btnStop {
     background-color: #f0ad4e;
     color: #fff;
@@ -192,6 +197,11 @@
 
 .btnResume {
     background-color: #305bce;
+    color: #fff;
+}
+
+.btnEdit {
+    background-color: #aaa;
     color: #fff;
 }
 
@@ -368,6 +378,28 @@
 .editInput:focus {
     border-color: #305bce;
     box-shadow: 0 0 0 3px rgba(48, 91, 206, 0.1);
+}
+
+.currencyInputGroup {
+    display: flex;
+    gap: 6px;
+    align-items: stretch;
+}
+
+.currencySelect {
+    width: 52px;
+    flex: none;
+    padding: 0;
+    text-align: center;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.currencyAmountInput {
+    flex: 1;
 }
 
 .editActions {

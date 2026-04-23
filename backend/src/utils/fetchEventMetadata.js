@@ -9,6 +9,7 @@ import axios from "axios";
  * @param {string} eventUrl - Full Ticketmaster event URL
  * @returns {Promise<{ eventLocation: string|null, eventDate: string|null }>}
  */
+
 export async function fetchEventMetadata(eventUrl) {
   const empty = { eventLocation: null, eventDate: null };
 

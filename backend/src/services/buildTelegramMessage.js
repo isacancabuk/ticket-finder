@@ -1,17 +1,19 @@
-import {
-  DOMAIN_CURRENCY,
-  formatPriceByCurrency,
-} from "../utils/currencyConfig.js";
+import { formatPriceByCurrency } from "../utils/currencyConfig.js";
 
-export async function buildTelegramMessage(query) {
+/**
+ * Builds a Telegram notification message from a completed query result.
+ *
+ * @param {object} query - Completed query object from runQuery()
+ * @returns {string} Formatted Telegram message
+ */
+
+export function buildTelegramMessage(query) {
   const eventName = query.eventName || "Bilinmeyen Etkinlik";
   const section = query.section || "Tümü";
   const minSeats = query.minSeats || 1;
   const domain = query.domain || "Unknown";
   const eventUrl = query.eventUrl || "Link yok";
   const orderNo = query.orderNo || "–";
-
-  const foundCurrency = DOMAIN_CURRENCY[domain] || "EUR";
 
   // Format event date
   let formattedDate = "–";
@@ -63,7 +65,7 @@ export async function buildTelegramMessage(query) {
   lines.push(
     `💺 Min. Koltuk: ${minSeats}`,
     `🏷️ Satış Fiyatı: ${salePriceStr} (EUR)`,
-    `💰 Bulunan Fiyat: ${priceStr} (EUR)`
+    `💰 Bulunan Fiyat: ${priceStr} (EUR)`,
   );
 
   // Profit/loss calculation in EUR (backend already normalized)
