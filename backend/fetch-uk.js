@@ -19,8 +19,10 @@ const headersUK = {
 };
 
 // ── Pagination constants ──────────────────────────────────────
-const PAGE_SIZE = 20;   // Assumed from observed offset deltas (180→200)
-const MAX_PAGES = 50;   // Safety cap → max ~1000 tickets scanned
+const PAGE_SIZE = 20;       // Assumed from observed offset deltas (180→200)
+const MAX_PAGES = 10;       // Safety cap → max ~200 tickets scanned
+const BASE_DELAY_MS = 250;  // Base inter-page delay
+const JITTER_MS = 250;      // Random jitter added to base delay (0..JITTER_MS)
 
 /**
  * Builds the quickpicks URL with pagination support.
@@ -45,10 +47,15 @@ function buildQuickpicksUrl(eventId, qty, offset) {
 /**
  * Checks ticket availability on Ticketmaster UK via the paginated quickpicks API.
  *
- * Fetches all pages of results by incrementing the offset parameter until
- * a safe stop condition is met (empty page, all duplicates, total reached,
- * or max page cap). Both `picks` and `promoted` arrays from each response
- * are merged and deduplicated by pick.id.
+ * Anti-bot-friendly pagination strategy:
+ * - Jittered delay (250–500ms) between page requests
+ * - MAX_PAGES = 10 (max ~200 tickets)
+ * - Early exit as soon as a valid section+price match is found
+ * - Partial success: if mid-stream pages get blocked (403), evaluates
+ *   already-collected data instead of discarding everything
+ *
+ * Both `picks` and `promoted` arrays from each response are merged
+ * and deduplicated by pick.id.
  *
  * Matching logic:
  * - Section matching is done against pick.section (case-insensitive)
@@ -66,97 +73,104 @@ export async function fetchUK({ eventId, section, minSeats = 1, maxPrice }) {
   const qty = minSeats || 1;
   const start = Date.now();
 
-  try {
-    // ── Paginated accumulation ────────────────────────────────
-    const allPicks = [];
-    const seenIds = new Set();
-    let totalFromApi = null;
-    let offset = 0;
-    let firstPageValidated = false;
+  // ── Matching state (maintained across pages) ────────────────
+  let isAvailable = false;
+  let cheapestMatchingPrice = null;
+  const isBroadMode = !section;
 
-    for (let page = 0; page < MAX_PAGES; page++) {
-      const url = buildQuickpicksUrl(eventId, qty, offset);
+  // ── Accumulation state ──────────────────────────────────────
+  const seenIds = new Set();
+  let totalFromApi = null;
+  let offset = 0;
+  let firstPageValidated = false;
 
+  for (let page = 0; page < MAX_PAGES; page++) {
+    // ── Inter-page delay (skip page 0) ──────────────────────
+    if (page > 0) {
+      const delay = BASE_DELAY_MS + Math.floor(Math.random() * JITTER_MS);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+
+    const url = buildQuickpicksUrl(eventId, qty, offset);
+    let data;
+
+    try {
       const res = await axios.get(url, {
         headers: headersUK,
         timeout: 10000,
       });
-
-      const data = res.data;
-
-      // ── First-page structure validation ───────────────────
+      data = res.data;
+    } catch (err) {
+      // ── Partial success: mid-stream error handling ────────
+      // If we have NO data yet (page 0 failed) → full error
       if (!firstPageValidated) {
-        if (!data || typeof data !== "object" || !Array.isArray(data.picks)) {
-          const latencyMs = Date.now() - start;
-          const bodySnippet =
-            typeof data === "string"
-              ? data.slice(0, 500)
-              : JSON.stringify(data).slice(0, 500);
-
-          return {
-            success: false,
-            errorMessage: "PARSING_ERROR: response missing expected 'picks' array",
-            errorCategory: "PARSING_ERROR",
-            httpStatus: res.status,
-            responseBody: bodySnippet,
-            retryable: false,
-            latencyMs,
-          };
-        }
-        totalFromApi = typeof data.total === "number" ? data.total : null;
-        firstPageValidated = true;
+        const latencyMs = Date.now() - start;
+        const normalized = normalizeError(err);
+        return {
+          success: false,
+          errorMessage: `${normalized.category}: ${normalized.message}`,
+          errorCategory: normalized.category,
+          httpStatus: normalized.httpStatus,
+          responseBody: normalized.responseBody,
+          retryable: normalized.retryable,
+          latencyMs,
+        };
       }
 
-      // ── Merge picks + promoted (deduplicated) ─────────────
-      const pagePicks = [
-        ...(Array.isArray(data.picks) ? data.picks : []),
-        ...(Array.isArray(data.promoted) ? data.promoted : []),
-      ];
-
-      // Stop condition 1: empty page
-      if (pagePicks.length === 0) break;
-
-      let newCount = 0;
-      for (const pick of pagePicks) {
-        // Unique ID: prefer pick.id, fallback to resaleListingId, then composite key
-        const id =
-          pick.id ||
-          pick.resaleListingId ||
-          `${pick.section}-${pick.row}-${pick.seatFrom}`;
-
-        if (!seenIds.has(id)) {
-          seenIds.add(id);
-          allPicks.push(pick);
-          newCount++;
-        }
-      }
-
-      // Stop condition 2: all duplicates — server recycling results
-      if (newCount === 0) break;
-
-      // Stop condition 3: total reached — full dataset accumulated
-      if (totalFromApi != null && allPicks.length >= totalFromApi) break;
-
-      offset += PAGE_SIZE;
+      // We have data from previous pages → break and evaluate
+      console.warn(
+        `[fetch-uk] Page ${page} blocked (offset=${offset}), evaluating ${seenIds.size} picks from previous pages`
+      );
+      break;
     }
 
-    const latencyMs = Date.now() - start;
+    // ── First-page structure validation ─────────────────────
+    if (!firstPageValidated) {
+      if (!data || typeof data !== "object" || !Array.isArray(data.picks)) {
+        const latencyMs = Date.now() - start;
+        const bodySnippet =
+          typeof data === "string"
+            ? data.slice(0, 500)
+            : JSON.stringify(data).slice(0, 500);
 
-    // ── Section + Price matching against full set ──────────────
-    let isAvailable = false;
-    let foundPrice = null;
-    let priceExceeded = false;
+        return {
+          success: false,
+          errorMessage: "PARSING_ERROR: response missing expected 'picks' array",
+          errorCategory: "PARSING_ERROR",
+          httpStatus: 200,
+          responseBody: bodySnippet,
+          retryable: false,
+          latencyMs,
+        };
+      }
+      totalFromApi = typeof data.total === "number" ? data.total : null;
+      firstPageValidated = true;
+    }
 
-    // Broad mode: when section is null, match ANY pick
-    const isBroadMode = !section;
+    // ── Merge picks + promoted (deduplicated) ───────────────
+    const pagePicks = [
+      ...(Array.isArray(data.picks) ? data.picks : []),
+      ...(Array.isArray(data.promoted) ? data.promoted : []),
+    ];
 
-    // Track the cheapest matching price across all picks
-    let cheapestMatchingPrice = null;
+    // Stop condition 1: empty page
+    if (pagePicks.length === 0) break;
 
-    for (const pick of allPicks) {
-      // Stage 1: Section match
+    let newCount = 0;
+    for (const pick of pagePicks) {
+      // Unique ID: prefer pick.id, fallback to resaleListingId, then composite key
+      const id =
+        pick.id ||
+        pick.resaleListingId ||
+        `${pick.section}-${pick.row}-${pick.seatFrom}`;
+
+      if (seenIds.has(id)) continue;
+      seenIds.add(id);
+      newCount++;
+
+      // ── Per-pick matching (inline) ──────────────────────
+      // Section match
       if (!isBroadMode) {
-        // Compare pick.section against the target section (case-insensitive)
         if (
           !pick.section ||
           pick.section.toUpperCase() !== section.toUpperCase()
@@ -165,9 +179,7 @@ export async function fetchUK({ eventId, section, minSeats = 1, maxPrice }) {
         }
       }
 
-      // Stage 2: Price evaluation
-      // originalPrice is per-ticket in GBP (as a float, e.g. 52.88)
-      // Convert to cents for consistency with DE/ES
+      // Price evaluation
       const rawPrice = pick.originalPrice;
       if (rawPrice == null) continue;
 
@@ -178,42 +190,44 @@ export async function fetchUK({ eventId, section, minSeats = 1, maxPrice }) {
         cheapestMatchingPrice = priceCents;
       }
 
-      // Stage 3: Price check against maxPrice
+      // Price check against maxPrice
       if (!maxPrice || priceCents <= maxPrice) {
         isAvailable = true;
-        // Keep looking for cheaper options
       }
     }
 
-    // Determine final price result
-    if (cheapestMatchingPrice !== null) {
-      foundPrice = cheapestMatchingPrice;
-      if (!isAvailable) {
-        // Section matched but all prices exceeded maxPrice
-        priceExceeded = true;
-      }
-    }
+    // ── Early exit: valid match found ────────────────────────
+    if (isAvailable) break;
 
-    return {
-      success: true,
-      isAvailable,
-      foundPrice,
-      priceExceeded,
-      eventName: null, // UK quickpicks API does not return event name
-      latencyMs,
-    };
-  } catch (err) {
-    const latencyMs = Date.now() - start;
-    const normalized = normalizeError(err);
+    // Stop condition 2: all duplicates — server recycling results
+    if (newCount === 0) break;
 
-    return {
-      success: false,
-      errorMessage: `${normalized.category}: ${normalized.message}`,
-      errorCategory: normalized.category,
-      httpStatus: normalized.httpStatus,
-      responseBody: normalized.responseBody,
-      retryable: normalized.retryable,
-      latencyMs,
-    };
+    // Stop condition 3: total reached — full dataset accumulated
+    if (totalFromApi != null && seenIds.size >= totalFromApi) break;
+
+    offset += PAGE_SIZE;
   }
+
+  const latencyMs = Date.now() - start;
+
+  // ── Determine final result ──────────────────────────────────
+  let foundPrice = null;
+  let priceExceeded = false;
+
+  if (cheapestMatchingPrice !== null) {
+    foundPrice = cheapestMatchingPrice;
+    if (!isAvailable) {
+      // Section matched but all prices exceeded maxPrice
+      priceExceeded = true;
+    }
+  }
+
+  return {
+    success: true,
+    isAvailable,
+    foundPrice,
+    priceExceeded,
+    eventName: null, // UK quickpicks API does not return event name
+    latencyMs,
+  };
 }
