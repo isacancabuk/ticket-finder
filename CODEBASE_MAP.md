@@ -42,7 +42,7 @@ Centralized business logic for processing queries.
 These scripts perform the actual external API requests.
 - `fetch-de.js` - Scraper for Ticketmaster Germany (`TM_DE`). Handles parsing Ticketmaster API JSON, parsing sections/seats, matching prices, and returning actionable data (`isAvailable`, `priceExceeded`, `foundPrice`, `foundSections`).
 - `fetch-es.js` - Scraper for Ticketmaster Spain (`TM_ES`). Mirrors the DE scraper but points to the Spanish domain endpoints.
-- `fetch-uk.js` - A partially implemented draft script for Ticketmaster UK using `mapsapi.tmol.co` geometry matching and facets (currently unintegrated into `runQuery.js`).
+- `fetch-uk.js` - Scraper for Ticketmaster UK (`TM_UK`). Uses the quickpicks API (`/api/quickpicks/{eventId}/list`), matches sections via `pick.section`, extracts per-ticket price from `originalPrice`, converts GBP floats to cents. Fully integrated into `runQuery.js`.
 
 ### Utilities (`/backend/src/utils`)
 - `fetchEventMetadata.js` - Extracts event date/location from Ticketmaster LD+JSON metadata when a URL is first submitted.

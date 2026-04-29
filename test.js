@@ -1,63 +1,44 @@
-const url = 'https://availability.ticketmaster.de/api/v2/TM_DE/availability/212362633?subChannelId=1';
-const cookie = "BID=zL-iB79jZV2PyvHFhxZa_HAfhF-jm-Ym2orqykmK9Ey2oqVwaweRo3BEGgbiyCSWA_I3riRhjLHSDpYs; SID=5KYkOpq1o_EUY-z4OjIPqEjkux853QeIA7alym69I9vSneyLsgYNeLj0EPRRjcxRsSV9aLzVNjHmLQb6; TMUO=east_Oeo+kRQR4J9gBICPbpSA/O0eOjE/4InjSmRxyFBP/7M=; sticky=BCBA; tmpt=1:CAESGPQvqSHjsvMAkZJHwTvNtjPo18BxKn7-chjv-tem1DMiMKk8OHF-adVctZHEhgJQ4znwaCklROSlLMlqrNzGQoj30b-Ru3qebZwH1QxDZWETcA;"
+const url = 'https://www.ticketmaster.co.uk/api/quickpicks/36006363CFEB9A22/list?defaultToOne=true&promoted=primary&primary=true&resale=true&qty=1';
 
-if (!cookie) {
-  console.error('Error: TM_DE_COOKIE environment variable is not set.');
-  process.exit(1);
-}
+const cookie = 'BID=aigXRIKtoDssj0kuCXKcKI7d4LM2m6VHhus8lrOu_dMpIAVKBE7a9sW4RaQ_xulf6fsDu1bCcI9tFtQg; eps_sid=ac89f0b1eead95bc.1777377281.CjMtn4UQxgeX3N3q8ozw4kuKfLO80VxNDbyAU+nWgEA=; sticky=DDCD; SID=-BrzxtvSXDqKF3F4NoXwQ8pfcswLFvHIvMDqG_7lCwwV9DI4kiY-Sq3HABO9-DyArwbf2ag-Pzsixrx0; TMUO=west_wlLtby865fMgSKk/+yWet4ebO+UZ+hcWWYx/d7nIMk0=; tmpt=1:CAESGD7GNHupJ8NnjNnLikvvw1fb0WzjkDhWlhjgrI-k3TMiMMVQ5QLSn91FvHByJDWpwYeVi1_1oal_ZYE63shTbX8UnuxQ7SMskA_QYiAQNPzHTA;';
 
-async function run() {
+const headers = {
+  'Cookie': cookie,
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  'Accept': 'application/json, text/plain, */*'
+};
+
+async function testEndpoint() {
   try {
-    console.log(`Sending GET request to ${url}...`);
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Cookie': cookie,
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*'
-      }
-    });
+    console.log(`Sending GET request to: ${url}`);
+    const response = await fetch(url, { method: 'GET', headers });
 
     console.log(`\nResponse Status: ${response.status} ${response.statusText}`);
-    const contentType = response.headers.get('content-type') || 'unknown';
-    console.log(`Response Content-Type: ${contentType}`);
+    const contentType = response.headers.get('content-type');
+    console.log(`Content-Type: ${contentType}`);
 
     const text = await response.text();
-    let isJson = false;
-    let jsonData = null;
-
+    
     try {
-      jsonData = JSON.parse(text);
-      isJson = true;
-    } catch (e) {
-      isJson = false;
-    }
-
-    console.log(`JSON Parsing Succeeded: ${isJson}`);
-
-    if (isJson) {
-      console.log('\nTop-level keys summary:');
-      const keys = Object.keys(jsonData);
-      if (keys.length === 0) {
-        console.log('  (Empty object)');
-      } else {
-        keys.forEach(key => {
-          const val = jsonData[key];
-          let type = typeof val;
-          if (Array.isArray(val)) type = `Array (${val.length} items)`;
-          else if (val === null) type = 'null';
-          console.log(`  - ${key}: ${type}`);
-        });
+      const data = JSON.parse(text);
+      console.log('JSON Parsing: Succeeded');
+      console.log('Top-level keys:', Object.keys(data));
+      
+      if (data.picks) {
+        console.log(`Picks count: ${data.picks.length}`);
       }
-    } else {
-      console.log('\nRaw response (first 500 characters):');
-      console.log(text.substring(0, 500) + (text.length > 500 ? '...' : ''));
+      
+      const previewStr = JSON.stringify(data, null, 2);
+      console.log('\nCompact preview:');
+      console.log(previewStr.substring(0, 1500) + (previewStr.length > 1500 ? '\n...' : ''));
+    } catch (parseError) {
+      console.log('JSON Parsing: Failed');
+      console.log('\nRaw response preview (first 1500 chars):');
+      console.log(text.substring(0, 1500));
     }
-
   } catch (error) {
-    console.error('\nRequest failed with an error:');
-    console.error(error.message);
+    console.error('\nRequest failed:', error.message);
   }
 }
 
-run();
+testEndpoint();

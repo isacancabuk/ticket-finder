@@ -38,10 +38,17 @@ export function parseTicketmasterUrl(url) {
     throw new Error("URL path has no segments — cannot extract event ID");
   }
 
-  // eventId = last segment, must be numeric
+  // eventId = last segment
+  // DE/ES use numeric-only IDs; UK uses alphanumeric (hex) IDs
   const eventId = segments[segments.length - 1];
-  if (!/^\d+$/.test(eventId)) {
-    throw new Error(`Event ID must be numeric, got: "${eventId}"`);
+  if (domain === "UK") {
+    if (!/^[A-Za-z0-9]+$/.test(eventId)) {
+      throw new Error(`UK Event ID must be alphanumeric, got: "${eventId}"`);
+    }
+  } else {
+    if (!/^\d+$/.test(eventId)) {
+      throw new Error(`Event ID must be numeric, got: "${eventId}"`);
+    }
   }
 
   // eventSlug = second-to-last segment (if present), URI-decoded

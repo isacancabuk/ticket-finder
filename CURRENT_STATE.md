@@ -8,7 +8,7 @@ This document outlines the partially implemented, fully implemented, and rough e
 - **Section Picker helper:** A visual "Bölümler" button fetches the manifest for the event URL and provides a dropdown to select one or multiple sections easily. It shows visually which sections are currently selected in the input.
 - **Broad Availability & Multi-Section Mode:** If a user omits the `section`, the scraper scans all available sections blindly. If multiple sections are inputted (comma/space separated), it evaluates all of them.
 - **Multiple Configurations:** The system supports creating multiple identical queries (same event, same section) simultaneously without unique constraint blocking.
-- **Ticketmaster DE & ES Checks:** Reliable JSON/API based scraping for German (TM_DE) and Spanish (TM_ES) events via `fetch-de.js` and `fetch-es.js`.
+- **Ticketmaster DE, ES & UK Checks:** Reliable JSON/API based scraping for German (TM_DE), Spanish (TM_ES), and UK (TM_UK) events via `fetch-de.js`, `fetch-es.js`, and `fetch-uk.js`.
 - **Minimum Seat Logic:** `minSeats` property is actively evaluated by checking group quantities.
 - **Profit/Loss Notifications:** Fully Turkish-localized Telegram notifications that dynamically calculate and append actual profit/loss logic based on `salePrice`. Shows found section and per-ticket price breakdowns if minSeats > 1.
 - **Duplicate Notification Prevention:** Scrapes that fail with temporary errors retain the previous availability state (`isAvailable`), preventing annoying notification spam when the block lifts.
@@ -44,7 +44,6 @@ The system evaluates availability and user pricing actively:
 
 ## Current Rough Edges / Known Limitations
 
-- **No Ticketmaster UK execution:** Forms allow UK `.co.uk` inputs, but `fetch-uk.js` is merely a drafted stub. Submitting a UK link will result in errors unless resolved.
 - **TM Cookie dependency:** There is no automated session rotation for domains that require them. When `.env` cookie strings expire, scrapers might return continuous `401 Unauthorized` or `403 Forbidden` errors.
 
 ---
@@ -53,5 +52,4 @@ The system evaluates availability and user pricing actively:
 
 The core Multi-Currency/FX infrastructure is completely implemented. What remains:
 
-- **Complete TM UK Scraper:** The `fetch-uk.js` scraper needs to be fully built and connected to the `runQuery.js` pipeline.
 - **Automated Authentication:** Implement browser-based session refreshers or proxy rotations to prevent 401s on TM domains.

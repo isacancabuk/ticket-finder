@@ -50,7 +50,10 @@ export default function Card({ query, onClick }) {
   const imgUrl = new URL(`../assets/${site}.png`, import.meta.url).href;
   const displayStatus = getDisplayStatus(query);
   const statusLabel = STATUS_LABELS[displayStatus] || status;
-  const countryCode = domain?.toLowerCase() || "de";
+  // flag-icons uses ISO 3166-1 alpha-2: UK → gb
+  const FLAG_CODE_MAP = { uk: "gb" };
+  const rawCode = domain?.toLowerCase() || "de";
+  const countryCode = FLAG_CODE_MAP[rawCode] || rawCode;
 
   // Currency resolution
   const foundCurrency = DOMAIN_CURRENCY[domain] || "EUR";
@@ -147,7 +150,7 @@ export default function Card({ query, onClick }) {
             </p>
           )}
           <span className={`fi fi-${countryCode} ${styles.flag}`}></span>
-          <p className="font-bold">{countryCode.toUpperCase()}</p>
+          <p className="font-bold">{domain || "DE"}</p>
         </div>
 
         <div className="flex flex-col items-center">

@@ -1,6 +1,7 @@
 import prisma from "../prisma.js";
 import { fetchDE } from "../../fetch-de.js";
 import { fetchES } from "../../fetch-es.js";
+import { fetchUK } from "../../fetch-uk.js";
 import {
   normalizePricesToEUR,
   calculateProfitLoss,
@@ -72,6 +73,13 @@ export async function runQuery(queryId) {
         });
       } else if (query.domain === "ES") {
         sectionResult = await fetchES({
+          eventId: query.eventId,
+          section: section,
+          minSeats: query.minSeats || 1,
+          maxPrice: query.maxPrice,
+        });
+      } else if (query.domain === "UK") {
+        sectionResult = await fetchUK({
           eventId: query.eventId,
           section: section,
           minSeats: query.minSeats || 1,

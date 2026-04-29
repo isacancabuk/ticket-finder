@@ -35,6 +35,13 @@ export async function fetchEventMetadata(eventUrl) {
          headers["Referer"] = "https://www.ticketmaster.es/";
          headers["Origin"] = "https://www.ticketmaster.es";
       }
+    } else if (eventUrl.includes("ticketmaster.co.uk")) {
+      const tmUkCookie = process.env.TM_UK_COOKIE || "";
+      if (tmUkCookie) {
+         headers["Cookie"] = tmUkCookie;
+         headers["Referer"] = "https://www.ticketmaster.co.uk/";
+         headers["Origin"] = "https://www.ticketmaster.co.uk";
+      }
     }
 
     const res = await axios.get(eventUrl, {

@@ -5,6 +5,7 @@ import { fetchEventMetadata } from "../utils/fetchEventMetadata.js";
 import { runQuery } from "../services/runQuery.js";
 import { fetchDEManifestSections } from "../../fetchDEManifestSections.js";
 import { fetchESManifestSections } from "../../fetchESManifestSections.js";
+import { fetchUKManifestSections } from "../../fetchUKManifestSections.js";
 import { SUPPORTED_SALE_CURRENCIES } from "../utils/currencyConfig.js";
 import {
   normalizePricesToEUR,
@@ -31,9 +32,9 @@ router.get("/manifest-sections", async (req, res) => {
       return res.status(400).json({ error: err.message });
     }
 
-    if (parsed.domain !== "DE" && parsed.domain !== "ES") {
+    if (parsed.domain !== "DE" && parsed.domain !== "ES" && parsed.domain !== "UK") {
       return res.status(400).json({
-        error: `Manifest bölümleri yardımcısı yalnızca DE ve ES etki alanları için desteklenir, alınan: ${parsed.domain}`,
+        error: `Manifest bölümleri yardımcısı yalnızca DE, ES ve UK etki alanları için desteklenir, alınan: ${parsed.domain}`,
       });
     }
 
@@ -47,6 +48,10 @@ router.get("/manifest-sections", async (req, res) => {
       result = await fetchESManifestSections({
         eventId: parsed.eventId,
         domain: "es",
+      });
+    } else if (parsed.domain === "UK") {
+      result = await fetchUKManifestSections({
+        eventId: parsed.eventId,
       });
     }
 
