@@ -53,4 +53,9 @@
   outline: none;
   appearance: none;
   -webkit-appearance: none;
+  transition: all 0.3s ease;
+}
+
+.currencySelect:focus {
+  border-color: #305bce;
 }

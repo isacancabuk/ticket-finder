@@ -1,7 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import styles from "./SectionPicker.module.css";
 
 export default function SectionPicker({ sections, selectedCodes = [], loading, error, onSelect, onClose }) {
+  const [searchTerm, setSearchTerm] = useState("");
+
   // Close on Escape key
   useEffect(() => {
     function handleKeyDown(e) {
@@ -12,6 +14,11 @@ export default function SectionPicker({ sections, selectedCodes = [], loading, e
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  const filteredSections = sections.filter((s) => {
+    const search = searchTerm.toLowerCase();
+    return s.name.toLowerCase().includes(search) || s.code.toLowerCase().includes(search);
+  });
 
   return (
     <>
@@ -31,6 +38,20 @@ export default function SectionPicker({ sections, selectedCodes = [], loading, e
           </button>
         </div>
 
+        {/* Search Field */}
+        {!loading && !error && sections.length > 0 && (
+          <div className={styles.pickerSearch}>
+            <input
+              type="text"
+              placeholder="Ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.searchInput}
+              autoFocus
+            />
+          </div>
+        )}
+
         {/* Content */}
         {loading ? (
           <div className={styles.pickerLoading}>Yükleniyor...</div>
@@ -38,9 +59,11 @@ export default function SectionPicker({ sections, selectedCodes = [], loading, e
           <div className={styles.pickerError}>{error}</div>
         ) : sections.length === 0 ? (
           <div className={styles.pickerEmpty}>Bölüm bulunamadı</div>
+        ) : filteredSections.length === 0 ? (
+          <div className={styles.pickerEmpty}>Sonuç bulunamadı</div>
         ) : (
           <div className={styles.pickerList}>
-            {sections.map((s) => {
+            {filteredSections.map((s) => {
               const isSelected = selectedCodes.includes(s.code.toUpperCase());
               return (
                 <button

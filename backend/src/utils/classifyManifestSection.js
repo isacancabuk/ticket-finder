@@ -23,7 +23,7 @@ export function classifySectionPriority(item) {
   const combined = `${codeLower} ${nameLower}`;
 
   // Priority 0: Floor/Standing/Special Premium Areas
-  // Keywords: pista, general, standing, floor, pit, admission, gold circle, stehplatz, innenraum
+  // Keywords cover DE (steh, innenraum), ES (pista), UK (goldc, gasth), and generic terms
   const floorKeywords = [
     "pista",
     "general",
@@ -33,6 +33,9 @@ export function classifySectionPriority(item) {
     "admission",
     "gold circle",
     "golden circle",
+    "goldc",
+    "gasth",
+    "ga ",
     "steh",
     "innenraum",
   ];

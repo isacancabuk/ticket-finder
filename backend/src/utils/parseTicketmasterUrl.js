@@ -51,9 +51,13 @@ export function parseTicketmasterUrl(url) {
     }
   }
 
-  // eventSlug = second-to-last segment (if present), URI-decoded
+  // eventSlug extraction:
+  // DE/ES: /slug/{numericId}        → slug is segments[length - 2]
+  // UK:    /slug/event/{alphaId}    → slug is segments[length - 3]
   let eventSlug = null;
-  if (segments.length >= 2) {
+  if (domain === "UK" && segments.length >= 3) {
+    eventSlug = decodeURIComponent(segments[segments.length - 3]);
+  } else if (segments.length >= 2) {
     eventSlug = decodeURIComponent(segments[segments.length - 2]);
   }
 

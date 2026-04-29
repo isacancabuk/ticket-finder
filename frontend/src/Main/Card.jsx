@@ -6,7 +6,7 @@ const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR" };
 
 function formatPrice(cents, currencyCode) {
   if (cents == null) return "–";
-  return `${(cents / 100).toFixed(2)} ${currencyCode}`;
+  return `${(cents / 100).toFixed(2)}\u00A0${currencyCode}`;
 }
 
 function getDisplayStatus(query) {
@@ -89,18 +89,18 @@ export default function Card({ query, onClick }) {
       if (profitLoss > 0) {
         profitLossLine = (
           <span className="text-green-600 font-bold">
-            , {formatPrice(profitLoss, profitLossCurrency)} kâr
+            , {formatPrice(profitLoss, profitLossCurrency)}{"\u00A0"}kâr
           </span>
         );
       } else if (profitLoss < 0) {
         profitLossLine = (
           <span className="text-red-500 font-bold">
-            , {formatPrice(Math.abs(profitLoss), profitLossCurrency)} zarar
+            , {formatPrice(Math.abs(profitLoss), profitLossCurrency)}{"\u00A0"}zarar
           </span>
         );
       } else {
         profitLossLine = (
-          <span className="text-gray-500 font-bold">, 0 kâr</span>
+          <span className="text-gray-500 font-bold">, 0{"\u00A0"}kâr</span>
         );
       }
     } else {
@@ -155,7 +155,7 @@ export default function Card({ query, onClick }) {
 
         <div className="flex flex-col items-center">
           {metaLine && <p className={styles.eventMeta}>{metaLine}</p>}
-          <p className="text-2xl font-bold text-center">{eventName || "Unknown Event"}</p>
+          <p className="text-2xl font-bold text-center" style={{ textWrap: "balance", lineHeight: "1.2", marginBottom: "4px" }}>{eventName || "Unknown Event"}</p>
           <p className="text-lg text-gray-500 font-bold">
             Section: {section || "Tümü"}
             {minSeats && minSeats > 1 ? ` x ${minSeats}` : ""}
@@ -172,7 +172,7 @@ export default function Card({ query, onClick }) {
             <p className="text-sm font-bold text-gray-700">
               {salePrice != null ? (
                 <>
-                  {`${formatPrice(salePrice, saleCurrency)} satış fiyatı`}
+                  <span className="whitespace-nowrap">{formatPrice(salePrice, saleCurrency)}{"\u00A0"}satış{"\u00A0"}fiyatı</span>
                   {salePriceInEUR != null && salePriceCurrency !== "EUR" && (
                     <span className="text-xs text-gray-500">
                       {" "}
@@ -183,22 +183,24 @@ export default function Card({ query, onClick }) {
               ) : (
                 "\u00A0"
               )}
-              {foundPriceInEUR != null && foundCurrency !== "EUR" && (
-                <> ({formatPrice(foundPriceInEUR, "EUR")})</>
-              )}
             </p>
           </div>
           <p className={`font-bold text-2xl ${styles.statusText}`}>
             {statusLabel}
           </p>
-          <p className={styles.priceInfo}>
+          <p className={styles.priceInfo} style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "2px 4px" }}>
             {(displayStatus === "found" ||
               displayStatus === "price_exceeded" ||
               displayStatus === "purchased") &&
             foundPrice != null ? (
               <>
-                <span>{formatPrice(foundPrice, foundCurrency)} bulundu</span>
-                {profitLossLine}
+                <span className="whitespace-nowrap">{formatPrice(foundPrice, foundCurrency)}{"\u00A0"}bulundu</span>
+                {foundPriceInEUR != null && foundCurrency !== "EUR" && (
+                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                    ({formatPrice(foundPriceInEUR, "EUR")})
+                  </span>
+                )}
+                {profitLossLine && <span className="whitespace-nowrap">{profitLossLine}</span>}
               </>
             ) : (
               "\u00A0"

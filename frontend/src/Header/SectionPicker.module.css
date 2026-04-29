@@ -168,3 +168,25 @@
   font-size: 13px;
   color: #888;
 }
+
+.pickerSearch {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #fafafa;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  background-color: #fff;
+}
+
+.searchInput:focus {
+  border-color: #305bce;
+}
