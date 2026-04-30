@@ -84,8 +84,8 @@ export default function QueryModal({ query, onClose }) {
   }, [fetcher.data, onClose]);
 
   const isBusy = fetcher.state !== "idle";
-  const canStop = query.status === "FINDING" || query.status === "FOUND";
-  const canResume = query.status === "STOPPED" || query.status === "ERROR";
+  const canStop = query.status === "FINDING" || query.status === "FOUND" || query.status === "ERROR";
+  const canResume = query.status === "STOPPED";
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) {

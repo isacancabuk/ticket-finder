@@ -27,11 +27,13 @@ export async function runQuery(queryId) {
     throw new Error("QUERY_STOPPED");
   }
 
-  // Status'u FINDING yap
+  // Mark query as actively being checked.
+  // Skip status change for already-FOUND queries to prevent
+  // FOUND→FINDING→FOUND flicker during slow rechecks (UK pagination).
   await prisma.query.update({
     where: { id: queryId },
     data: {
-      status: "FINDING",
+      ...(query.status !== "FOUND" && { status: "FINDING" }),
       lastCheckedAt: new Date(),
       lastErrorMessage: null,
     },
