@@ -23,6 +23,7 @@ async function rootAction({ request }) {
       salePrice: formData.get("salePrice") || "",
       salePriceCurrency: formData.get("salePriceCurrency") || "EUR",
       orderNo: formData.get("orderNo"),
+      description: formData.get("description") || "",
     };
 
     const res = await apiFetch("/queries", {
@@ -36,7 +37,7 @@ async function rootAction({ request }) {
       return { error: err.error || "Failed to create query" };
     }
 
-    return { ok: true };
+    return { ok: true, created: true };
   }
 
   if (intent === "stop") {
@@ -72,6 +73,7 @@ async function rootAction({ request }) {
       salePrice: formData.get("salePrice"),
       salePriceCurrency: formData.get("salePriceCurrency"),
       orderNo: formData.get("orderNo"),
+      description: formData.get("description"),
     };
 
     const res = await apiFetch(`/queries/${id}`, {

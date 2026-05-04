@@ -26,7 +26,7 @@ export default function HeaderSection() {
 
   // Reset form after successful submission
   useEffect(() => {
-    if (navigation.state === "idle" && actionData && !actionData.error) {
+    if (navigation.state === "idle" && actionData?.created) {
       formRef.current?.reset();
       setUrlValue("");
     }
@@ -69,7 +69,7 @@ export default function HeaderSection() {
     }
   }, []);
 
-  // Add section code to input
+  // Add or remove section code to input
   const handleSectionSelect = useCallback((code) => {
     if (sectionInputRef.current) {
       // Get current value
@@ -79,13 +79,20 @@ export default function HeaderSection() {
         .map((c) => c.trim().toUpperCase())
         .filter(Boolean);
 
-      // If already selected, do nothing
-      if (currentCodes.includes(code.toUpperCase())) {
-        return;
+      const upperCode = code.toUpperCase();
+      let newCodes;
+
+      if (currentCodes.includes(upperCode)) {
+        // If already selected, remove it
+        newCodes = currentCodes.filter(c => c !== upperCode);
+        setPickerSelectedCodes((prev) => prev.filter(c => c !== upperCode));
+      } else {
+        // Add new section
+        newCodes = [...currentCodes, upperCode];
+        setPickerSelectedCodes((prev) => [...prev, upperCode]);
       }
 
-      // Add new section (space-separated)
-      const newValue = currentValue.trim() ? `${currentValue.trim()} ${code}` : code;
+      const newValue = newCodes.join(" ");
 
       // Set the native input value
       const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
@@ -98,9 +105,6 @@ export default function HeaderSection() {
       sectionInputRef.current.dispatchEvent(
         new Event("input", { bubbles: true }),
       );
-
-      // Update picker selected state
-      setPickerSelectedCodes((prev) => [...prev, code.toUpperCase()]);
     }
   }, []);
 
@@ -111,13 +115,23 @@ export default function HeaderSection() {
   const hasUrl = urlValue.trim().length > 0;
 
   return (
-    <div className="h-[220px] w-full flex flex-col items-center justify-center">
+    <div className="h-[270px] w-full flex flex-col items-center justify-center">
       <Form
         ref={formRef}
         method="POST"
         className="w-[1000px] grid grid-cols-5 gap-5"
       >
         <input type="hidden" name="_action" value="create" />
+
+        {/* Row 0: Description (full width) */}
+        <div className="col-span-5">
+          <Input
+            type="text"
+            name="description"
+            placeholder="Açıklama / Not"
+            required={false}
+          />
+        </div>
 
         {/* Row 1: Order No. | Event URL (3 cols) | Bölümler helper */}
         <div className="col-span-1">
@@ -136,6 +150,7 @@ export default function HeaderSection() {
             name="url"
             placeholder="Event URL"
             required={true}
+            value={urlValue}
             onChange={(e) => setUrlValue(e.target.value)}
           />
         </div>

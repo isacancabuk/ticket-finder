@@ -44,6 +44,7 @@
 }
 
 .imgDiv {
+    position: relative;
     width: 100%;
     display: flex;
     justify-content: center;
@@ -68,6 +69,20 @@
     color: #555;
     letter-spacing: 0.3px;
     margin-bottom: 4px;
+}
+
+.description {
+    position: absolute;
+    right: 81px;
+    top: 15px;
+    width: 250px;
+    text-align: center;
+    font-size: 15px;
+    font-style: italic;
+    color: #888;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .infoDiv {
@@ -138,6 +153,13 @@
 }
 
 @keyframes toastFadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

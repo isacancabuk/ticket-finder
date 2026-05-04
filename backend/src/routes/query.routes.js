@@ -105,6 +105,7 @@ router.post("/", async (req, res) => {
       salePrice,
       salePriceCurrency,
       orderNo,
+      description,
     } = req.body;
 
     if (!url || !orderNo) {
@@ -187,6 +188,7 @@ router.post("/", async (req, res) => {
           salePrice: salePriceCents,
           salePriceCurrency: saleCurrency,
           orderNo,
+          description: description?.trim() || null,
           eventLocation: metadata.eventLocation,
           eventDate: metadata.eventDate,
         },
@@ -279,6 +281,7 @@ router.patch("/:id", async (req, res) => {
       salePrice,
       salePriceCurrency,
       orderNo,
+      description,
     } = req.body;
 
     const updateData = {};
@@ -354,6 +357,11 @@ router.patch("/:id", async (req, res) => {
     // ── Accept salePriceCurrency as-is (no validation needed) ────
     if (salePriceCurrency !== undefined) {
       updateData.salePriceCurrency = salePriceCurrency?.toUpperCase() || "EUR";
+    }
+
+    // ── Accept description (free-text, nullable) ────
+    if (description !== undefined) {
+      updateData.description = description?.trim() || null;
     }
 
     // ── Update database ────

@@ -115,6 +115,16 @@ export default function QueryModal({ query, onClose }) {
             <input type="hidden" name="queryId" value={query.id} />
 
             <div className={styles.editGrid}>
+              <div className={`${styles.editField}`} style={{ gridColumn: '1 / -1' }}>
+                <label className={styles.editLabel}>Açıklama / Not</label>
+                <input
+                  type="text"
+                  name="description"
+                  defaultValue={query.description || ""}
+                  placeholder="Opsiyonel açıklama veya not"
+                  className={styles.editInput}
+                />
+              </div>
               <div className={styles.editField}>
                 <label className={styles.editLabel}>Order Number</label>
                 <input
@@ -195,6 +205,12 @@ export default function QueryModal({ query, onClose }) {
           </fetcher.Form>
         ) : (
           <div className={styles.infoGrid}>
+            {query.description && (
+              <div className={styles.infoItem} style={{ gridColumn: '1 / -1' }}>
+                <span className={styles.infoLabel}>Açıklama</span>
+                <span className={styles.infoValue}>{query.description}</span>
+              </div>
+            )}
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Order Number</span>
               <span className={styles.infoValue}>{query.orderNo || "–"}</span>

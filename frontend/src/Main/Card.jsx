@@ -38,6 +38,7 @@ export default function Card({ query, onClick }) {
     eventUrl,
     lastErrorMessage,
     orderNo,
+    description,
     eventLocation,
     eventDate,
     foundPrice,
@@ -132,6 +133,11 @@ export default function Card({ query, onClick }) {
     >
       <div className={styles.imgDiv}>
         <img src={imgUrl} alt={site} />
+        {description && (
+          <p className={styles.description} title={description}>
+            <span style={{ color: "#555", fontWeight: "800" }}>NOT:</span> {description}
+          </p>
+        )}
       </div>
 
       <div className={styles.infoDiv}>
