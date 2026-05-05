@@ -4,31 +4,45 @@ import { buildNotificationDecision } from "../services/buildNotificationDecision
 import { buildTelegramMessage } from "../services/buildTelegramMessage.js";
 import { sendTelegramMessage } from "../services/sendTelegramMessage.js";
 
-const TICK_INTERVAL_MS = 10 * 1000; // 10 seconds
+const DEFAULT_TICK_INTERVAL_MS = 8 * 1000; // 8 seconds
 
-let isRunning = false;
+/**
+ * Starts a scheduler lane.
+ *
+ * @param {string} lane - Lane identifier (e.g., 'uk', 'non-uk', 'all') for logging
+ * @param {Function} querySelectorFn - Function that returns the next query to run
+ *                                     (defaults to getNextQueryToRun for backward compatibility)
+ * @param {number} tickIntervalMs - Tick interval in milliseconds (defaults to 8000ms)
+ */
+export function startScheduler(
+  lane = "all",
+  querySelectorFn = getNextQueryToRun,
+  tickIntervalMs = DEFAULT_TICK_INTERVAL_MS,
+) {
+  let isRunning = false;
 
-export function startScheduler() {
-  console.log("[scheduler] Scheduler started (tick every 10s)");
+  console.log(
+    `[scheduler-${lane}] Scheduler started (tick every ${tickIntervalMs}ms)`,
+  );
 
   setInterval(async () => {
     if (isRunning) {
-      console.log("[scheduler] Skipping tick (still running)");
+      console.log(`[scheduler-${lane}] Skipping tick (still running)`);
       return;
     }
 
     isRunning = true;
 
     try {
-      const query = await getNextQueryToRun();
+      const query = await querySelectorFn();
 
       if (!query) {
-        console.log("[scheduler] No active queries");
+        console.log(`[scheduler-${lane}] No active queries`);
         return;
       }
 
       console.log(
-        `[scheduler] Running query (domain=${query.domain} eventId=${query.eventId} eventName="${query.eventName || "Unknown Event"}" section=${query.section || "ALL"})`,
+        `[scheduler-${lane}] Running query (domain=${query.domain} eventId=${query.eventId} eventName="${query.eventName || "Unknown Event"}" section=${query.section || "ALL"})`,
       );
 
       const result = await runQuery(query.id);
@@ -40,12 +54,15 @@ export function startScheduler() {
           await sendTelegramMessage(message);
         }
       } catch (notifyErr) {
-        console.error("[scheduler] Notification error:", notifyErr.message);
+        console.error(
+          `[scheduler-${lane}] Notification error:`,
+          notifyErr.message,
+        );
       }
     } catch (err) {
-      console.error("[scheduler] Error:", err.message);
+      console.error(`[scheduler-${lane}] Error:`, err.message);
     } finally {
       isRunning = false;
     }
-  }, TICK_INTERVAL_MS);
+  }, tickIntervalMs);
 }

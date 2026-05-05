@@ -80,9 +80,8 @@
     font-size: 15px;
     font-style: italic;
     color: #888;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 .infoDiv {

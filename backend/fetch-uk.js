@@ -20,9 +20,9 @@ const headersUK = {
 
 // ── Pagination constants ──────────────────────────────────────
 const PAGE_SIZE = 20;       // Assumed from observed offset deltas (180→200)
-const MAX_PAGES = 10;       // Safety cap → max ~200 tickets scanned
-const BASE_DELAY_MS = 10000;  // Base inter-page delay
-const JITTER_MS = 250;      // Random jitter added to base delay (0..JITTER_MS)
+const MAX_PAGES = 50;       // Safety cap → max ~1000 tickets scanned
+const BASE_DELAY_MS = 20000;  // Base inter-page delay
+const JITTER_MS = 10000;      // Random jitter added to base delay (0..JITTER_MS)
 
 /**
  * Builds the quickpicks URL with pagination support.

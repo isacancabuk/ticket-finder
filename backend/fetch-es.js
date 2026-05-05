@@ -73,7 +73,7 @@ export async function fetchES({ eventId, section, minSeats = 1, maxPrice }) {
     const offersMap = {};
     if (Array.isArray(data.offers)) {
       for (const offer of data.offers) {
-        if (offer.id) {
+        if (offer.id && !offersMap[offer.id]) {
           offersMap[offer.id] = offer;
         }
       }
@@ -172,8 +172,6 @@ export async function fetchES({ eventId, section, minSeats = 1, maxPrice }) {
           if (isAvailable) break;
         }
       }
-
-      if (isAvailable) break;
     }
 
     // ── Floor / General-Admission fallback ─────────────────────
@@ -204,18 +202,14 @@ export async function fetchES({ eventId, section, minSeats = 1, maxPrice }) {
             const offerPrice = offer.price?.total;
             if (offerPrice == null) continue;
 
-            // Track first matching price (first-match heuristic)
-            if (cheapestMatchingPrice === null) {
+            // Track cheapest price that matches section + seats
+            if (cheapestMatchingPrice === null || offerPrice < cheapestMatchingPrice) {
               cheapestMatchingPrice = offerPrice;
             }
 
             // Price check
             if (!maxPrice || offerPrice <= maxPrice) {
               isAvailable = true;
-              if (cheapestMatchingPrice === null || offerPrice < cheapestMatchingPrice) {
-                cheapestMatchingPrice = offerPrice;
-              }
-              break;
             }
           }
         } else {
@@ -223,8 +217,6 @@ export async function fetchES({ eventId, section, minSeats = 1, maxPrice }) {
           isAvailable = true;
         }
 
-        // First-match heuristic: stop after the first matching group
-        break;
       }
     }
 

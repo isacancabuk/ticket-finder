@@ -59,3 +59,39 @@ export async function getNextQueryToRun() {
 
   return fallback;
 }
+
+/**
+ * Returns the next UK query that should be checked.
+ * Used by the dedicated UK scheduler lane.
+ *
+ * @returns {Promise<import("@prisma/client").Query | null>}
+ */
+export async function getNextUKQueryToRun() {
+  const query = await prisma.query.findFirst({
+    where: {
+      ...ELIGIBLE_WHERE,
+      domain: "UK",
+    },
+    orderBy: OLDEST_FIRST,
+  });
+
+  return query;
+}
+
+/**
+ * Returns the next non-UK query (DE or ES) that should be checked.
+ * Used by the dedicated non-UK scheduler lane.
+ *
+ * @returns {Promise<import("@prisma/client").Query | null>}
+ */
+export async function getNextNonUKQueryToRun() {
+  const query = await prisma.query.findFirst({
+    where: {
+      ...ELIGIBLE_WHERE,
+      domain: { in: ["DE", "ES"] },
+    },
+    orderBy: OLDEST_FIRST,
+  });
+
+  return query;
+}
