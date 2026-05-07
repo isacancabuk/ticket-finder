@@ -3,9 +3,11 @@ import prisma from "../prisma.js";
 import { parseTicketmasterUrl } from "../utils/parseTicketmasterUrl.js";
 import { fetchEventMetadata } from "../utils/fetchEventMetadata.js";
 import { runQuery } from "../services/runQuery.js";
+import { fetchBEManifestSections } from "../../fetchBEManifestSections.js";
 import { fetchDEManifestSections } from "../../fetchDEManifestSections.js";
 import { fetchESManifestSections } from "../../fetchESManifestSections.js";
 import { fetchNLManifestSections } from "../../fetchNLManifestSections.js";
+import { fetchPLManifestSections } from "../../fetchPLManifestSections.js";
 import { fetchUKManifestSections } from "../../fetchUKManifestSections.js";
 import { SUPPORTED_SALE_CURRENCIES } from "../utils/currencyConfig.js";
 import {
@@ -33,9 +35,9 @@ router.get("/manifest-sections", async (req, res) => {
       return res.status(400).json({ error: err.message });
     }
 
-    if (parsed.domain !== "DE" && parsed.domain !== "ES" && parsed.domain !== "UK" && parsed.domain !== "NL") {
+    if (parsed.domain !== "DE" && parsed.domain !== "ES" && parsed.domain !== "UK" && parsed.domain !== "NL" && parsed.domain !== "PL" && parsed.domain !== "BE") {
       return res.status(400).json({
-        error: `Manifest bölümleri yardımcısı yalnızca DE, ES, UK ve NL etki alanları için desteklenir, alınan: ${parsed.domain}`,
+        error: `Manifest bölümleri yardımcısı yalnızca DE, ES, UK, NL, PL ve BE etki alanları için desteklenir, alınan: ${parsed.domain}`,
       });
     }
 
@@ -58,6 +60,16 @@ router.get("/manifest-sections", async (req, res) => {
       result = await fetchNLManifestSections({
         eventId: parsed.eventId,
         domain: "nl",
+      });
+    } else if (parsed.domain === "PL") {
+      result = await fetchPLManifestSections({
+        eventId: parsed.eventId,
+        domain: "pl",
+      });
+    } else if (parsed.domain === "BE") {
+      result = await fetchBEManifestSections({
+        eventId: parsed.eventId,
+        domain: "be",
       });
     }
 

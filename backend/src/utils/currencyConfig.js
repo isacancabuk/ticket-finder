@@ -9,6 +9,8 @@ export const DOMAIN_CURRENCY = {
   UK: "GBP",
   ES: "EUR",
   NL: "EUR",
+  PL: "PLN",
+  BE: "EUR",
 };
 
 // ISO 4217 → display symbol
@@ -17,10 +19,11 @@ export const CURRENCY_SYMBOLS = {
   GBP: "£",
   USD: "$",
   TRY: "₺",
+  PLN: "zł",
 };
 
 // Allowed currencies for salePrice input
-export const SUPPORTED_SALE_CURRENCIES = ["EUR", "GBP", "USD", "TRY"];
+export const SUPPORTED_SALE_CURRENCIES = ["EUR", "GBP", "USD", "TRY", "PLN"];
 
 // System-wide base currency for future FX normalization
 export const BASE_CURRENCY = "EUR";

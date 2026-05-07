@@ -2,7 +2,7 @@
  * Parses a Ticketmaster event URL and extracts domain, eventId, eventSlug, and eventName.
  *
  * @param {string} url - Full Ticketmaster event URL
- * @returns {{ site: "TICKETMASTER", domain: "DE"|"UK"|"ES"|"NL", eventId: string, eventSlug: string|null, eventName: string|null, eventUrl: string }}
+ * @returns {{ site: "TICKETMASTER", domain: "DE"|"UK"|"ES"|"NL"|"PL", eventId: string, eventSlug: string|null, eventName: string|null, eventUrl: string }}
  * @throws {Error} If the URL is invalid, unsupported, or missing a numeric event ID
  */
 
@@ -23,6 +23,8 @@ export function parseTicketmasterUrl(url) {
     "ticketmaster.co.uk": "UK",
     "ticketmaster.es": "ES",
     "ticketmaster.nl": "NL",
+    "ticketmaster.pl": "PL",
+    "ticketmaster.be": "BE",
   };
 
   const domain = domainMap[hostname];

@@ -11,6 +11,8 @@ enum Domain {
   DE
   ES
   NL
+  PL
+  BE
 }
 
 enum Site {
