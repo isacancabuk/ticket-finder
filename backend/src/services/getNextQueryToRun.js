@@ -31,6 +31,20 @@ const OLDEST_FIRST = [
  * @returns {Promise<import("@prisma/client").Query | null>}
  */
 export async function getNextQueryToRun() {
+  // Phase 0: prioritise queries that have NEVER been checked yet
+  const neverChecked = await prisma.query.findFirst({
+    where: {
+      ...ELIGIBLE_WHERE,
+      lastCheckedAt: null,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (neverChecked) {
+    lastSelectedDomain = neverChecked.domain;
+    return neverChecked;
+  }
+
   // Phase 1: try to pick a query from a different domain than last time
   if (lastSelectedDomain) {
     const preferred = await prisma.query.findFirst({
@@ -67,6 +81,18 @@ export async function getNextQueryToRun() {
  * @returns {Promise<import("@prisma/client").Query | null>}
  */
 export async function getNextUKQueryToRun() {
+  // Prioritise never-checked queries
+  const neverChecked = await prisma.query.findFirst({
+    where: {
+      ...ELIGIBLE_WHERE,
+      domain: "UK",
+      lastCheckedAt: null,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (neverChecked) return neverChecked;
+
   const query = await prisma.query.findFirst({
     where: {
       ...ELIGIBLE_WHERE,
@@ -79,16 +105,28 @@ export async function getNextUKQueryToRun() {
 }
 
 /**
- * Returns the next non-UK query (DE or ES) that should be checked.
+ * Returns the next non-UK query (DE, ES, or NL) that should be checked.
  * Used by the dedicated non-UK scheduler lane.
  *
  * @returns {Promise<import("@prisma/client").Query | null>}
  */
 export async function getNextNonUKQueryToRun() {
+  // Prioritise never-checked queries
+  const neverChecked = await prisma.query.findFirst({
+    where: {
+      ...ELIGIBLE_WHERE,
+      domain: { in: ["DE", "ES", "NL"] },
+      lastCheckedAt: null,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (neverChecked) return neverChecked;
+
   const query = await prisma.query.findFirst({
     where: {
       ...ELIGIBLE_WHERE,
-      domain: { in: ["DE", "ES"] },
+      domain: { in: ["DE", "ES", "NL"] },
     },
     orderBy: OLDEST_FIRST,
   });

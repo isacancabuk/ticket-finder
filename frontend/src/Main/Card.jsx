@@ -2,7 +2,7 @@ import { useState } from "react";
 import styles from "./Card.module.css";
 import "/node_modules/flag-icons/css/flag-icons.min.css";
 
-const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR" };
+const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR", NL: "EUR" };
 
 function formatPrice(cents, currencyCode) {
   if (cents == null) return "–";

@@ -3,7 +3,7 @@
 Use this guide to know exactly which files to edit when making common changes to the application.
 
 ## 1. Adding a new query input field
-*e.g. adding a "promoCode" constraint.*
+*e.g. adding a "description" constraint or note.*
 - **`backend/prisma/schema.prisma`**: Add the field to the `Query` model. Create migration `npx prisma db push`.
 - **`backend/src/routes/query.routes.js`**: Parse the field from `req.body` in `POST /` (for creation) and `PATCH /:id` (for editing). Add validation.
 - **`frontend/src/App.jsx`**: Add it to the formData payloads in `rootAction` under `intent === "create"` and `intent === "edit"`.
@@ -15,7 +15,7 @@ Use this guide to know exactly which files to edit when making common changes to
 - **Action**: Always run `npx prisma db push` or `npx prisma migrate dev` directly after doing this. Restart the node process and regenerate Prisma clients.
 
 ## 3. Changing UI Card, Modal, or Filter Layout
-- **`frontend/src/Main/Card.jsx`**: Add/remove variables, handling flags, UI logic (profit margin calculations, localized label rendering).
+- **`frontend/src/Main/Card.jsx` & `Card.module.css`**: Add/remove variables, handling flags, UI logic (profit margin calculations, localized label rendering). CSS handles text wrapping for fields like `description`.
 - **`frontend/src/Main/QueryModal.jsx`**: Modify the Log table columns or Modal editing forms.
 - **`frontend/src/Main/FilterBar.jsx`**: Modify search, dropdowns, or reset logic for filtering cards on the dashboard.
 
@@ -29,12 +29,12 @@ Use this guide to know exactly which files to edit when making common changes to
 - **`backend/src/services/runQuery.js`**: Maps the result of `fetch-*` into DB mutations. Modifying how `isAvailable` or `foundSectionStr` are merged or retained across errors happens here.
 
 ## 6. Changing Telegram Notifications
-- **`backend/src/services/buildTelegramMessage.js`**: Centralizing formatting logic for Telegram messages (e.g., adding local currency symbols, changing profit math markdown, adding ticket breakdowns).
+- **`backend/src/services/buildTelegramMessage.js`**: Centralizing formatting logic for Telegram messages (e.g., adding local currency symbols, changing profit math markdown, adding ticket breakdowns, or appending the `description` field).
 - **`backend/src/services/buildNotificationDecision.js`**: Modify rules for *when* a ping goes out.
 
 ## 7. Changing Section Picker UI or APIs
 - **`backend/src/routes/query.routes.js`**: The `GET /queries/manifest-sections` endpoint extracts sections via helper utilities.
-- **`frontend/src/Header/HeaderSection.jsx` & `SectionPicker.jsx`**: The component fetching the sections and mutating the `sectionInputRef` natively without standard React state bindings. CSS updates live in `SectionPicker.module.css`.
+- **`frontend/src/Header/HeaderSection.jsx` & `SectionPicker.jsx`**: The component fetching the sections and mutating the `sectionInputRef` natively. Includes search filter state logic. CSS updates live in `SectionPicker.module.css`.
 
 ---
 

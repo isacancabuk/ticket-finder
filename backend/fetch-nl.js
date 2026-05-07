@@ -2,21 +2,21 @@ import axios from "axios";
 import { normalizeError } from "./src/utils/normalizeError.js";
 import { getPriceMap } from "./src/services/priceMapFetcher.js";
 
-const TM_ES_COOKIE = process.env.TM_ES_COOKIE || "";
+const TM_NL_COOKIE = process.env.TM_NL_COOKIE || "";
 
-if (!TM_ES_COOKIE) {
+if (!TM_NL_COOKIE) {
   console.warn(
-    "[fetch-es] WARNING: TM_ES_COOKIE is not set in .env — ES requests will fail."
+    "[fetch-nl] WARNING: TM_NL_COOKIE is not set in .env — NL requests will fail."
   );
 }
 
-const headersES = {
+const headersNL = {
   "User-Agent":
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
   Accept: "application/json, text/plain, */*",
-  Referer: "https://www.ticketmaster.es/",
-  Origin: "https://www.ticketmaster.es",
-  Cookie: TM_ES_COOKIE,
+  Referer: "https://www.ticketmaster.nl/",
+  Origin: "https://www.ticketmaster.nl",
+  Cookie: TM_NL_COOKIE,
 };
 
 /**
@@ -38,14 +38,14 @@ function hasConsecutiveSeats(sortedSeats, n) {
   return false;
 }
 
-export async function fetchES({ eventId, section, minSeats = 1, maxPrice }) {
-  const url = `https://availability.ticketmaster.es/api/v2/TM_ES/availability/${eventId}?subChannelId=1`;
+export async function fetchNL({ eventId, section, minSeats = 1, maxPrice }) {
+  const url = `https://availability.ticketmaster.nl/api/v2/TM_NL/availability/${eventId}?subChannelId=1`;
 
   const start = Date.now();
 
   try {
     const res = await axios.get(url, {
-      headers: headersES,
+      headers: headersNL,
       timeout: 10000,
     });
 
@@ -80,8 +80,8 @@ export async function fetchES({ eventId, section, minSeats = 1, maxPrice }) {
       }
     }
 
-    // Fetch the price map
-    const priceMap = await getPriceMap(eventId, "es", TM_ES_COOKIE);
+    // Fetch the price map (Next.js __NEXT_DATA__ fallback for standard ticket pricing)
+    const priceMap = await getPriceMap(eventId, "nl", TM_NL_COOKIE);
 
     // ── Three-stage matching: section → seats → price ─────────
     let isAvailable = false;

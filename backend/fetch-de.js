@@ -1,5 +1,6 @@
 import axios from "axios";
 import { normalizeError } from "./src/utils/normalizeError.js";
+import { getPriceMap } from "./src/services/priceMapFetcher.js";
 
 const TM_DE_COOKIE = process.env.TM_DE_COOKIE || "";
 
@@ -79,6 +80,9 @@ export async function fetchDE({ eventId, section, minSeats = 1, maxPrice }) {
       }
     }
 
+    // Fetch the price map
+    const priceMap = await getPriceMap(eventId, "de", TM_DE_COOKIE);
+
     // ── Three-stage matching: section → seats → price ─────────
     let isAvailable = false;
     let foundPrice = null;
@@ -100,20 +104,36 @@ export async function fetchDE({ eventId, section, minSeats = 1, maxPrice }) {
         : Object.keys(places).filter((k) => k.endsWith(`-${section}`));
       if (matchingKeys.length === 0) continue;
 
-      // Check if this group's section has any actual seats
-      let sectionHasSeats = false;
+      // Check if this group's section has enough seats
+      let sectionHasEnoughSeats = false;
       for (const sectionKey of matchingKeys) {
         const rows = places[sectionKey];
         if (!rows) continue;
-        const hasAnySeat = Object.values(rows).some(
-          (seatsArr) => Array.isArray(seatsArr) && seatsArr.length > 0
-        );
-        if (hasAnySeat) {
-          sectionHasSeats = true;
-          break;
+
+        if (minSeats <= 1) {
+          const hasAnySeat = Object.values(rows).some(
+            (seatsArr) => Array.isArray(seatsArr) && seatsArr.length > 0
+          );
+          if (hasAnySeat) {
+            sectionHasEnoughSeats = true;
+            break;
+          }
+        } else {
+          for (const rowId of Object.keys(rows)) {
+            const seats = (rows[rowId] || [])
+              .map(Number)
+              .filter((n) => !isNaN(n))
+              .sort((a, b) => a - b);
+
+            if (hasConsecutiveSeats(seats, minSeats)) {
+              sectionHasEnoughSeats = true;
+              break;
+            }
+          }
         }
+        if (sectionHasEnoughSeats) break;
       }
-      if (!sectionHasSeats) continue;
+      if (!sectionHasEnoughSeats) continue;
 
       // Stage 2 & 3: Try offer-based matching first (has price info)
       if (offerIds.length > 0) {
@@ -121,13 +141,22 @@ export async function fetchDE({ eventId, section, minSeats = 1, maxPrice }) {
           const offer = offersMap[offerId];
           if (!offer) continue;
 
-          // Stage 2: Seat count check via quantities
-          const quantities = offer.quantities || [];
-          const seatsMatch = quantities.some((q) => q >= minSeats);
-          if (!seatsMatch) continue;
+          // Stage 2: Seat count check via quantities (for resale/specific offers)
+          if (offer.quantities && offer.quantities.length > 0) {
+            const seatsMatch = offer.quantities.some((q) => q >= minSeats);
+            if (!seatsMatch) continue;
+          }
 
           // We have section + seats — now check price
-          const offerPrice = offer.price?.total;
+          let offerPrice = null;
+          if (offer.price && offer.price.total != null) {
+            offerPrice = offer.price.total;
+          } else if (priceMap && offer.priceType && offer.priceLevel) {
+            if (priceMap[offer.priceType] && priceMap[offer.priceType][offer.priceLevel] != null) {
+              offerPrice = priceMap[offer.priceType][offer.priceLevel];
+            }
+          }
+
           if (offerPrice == null) continue;
 
           // Track cheapest price that matches section + seats
@@ -142,35 +171,8 @@ export async function fetchDE({ eventId, section, minSeats = 1, maxPrice }) {
           }
         }
       } else {
-        // Fallback: groups without offerIds — use legacy consecutive seat check
-        // These don't have price info, so skip price evaluation
-        for (const sectionKey of matchingKeys) {
-          const rows = places[sectionKey];
-          if (!rows) continue;
-
-          if (minSeats <= 1) {
-            const hasAnySeat = Object.values(rows).some(
-              (seatsArr) => Array.isArray(seatsArr) && seatsArr.length > 0
-            );
-            if (hasAnySeat) {
-              isAvailable = true;
-              break;
-            }
-          } else {
-            for (const rowId of Object.keys(rows)) {
-              const seats = (rows[rowId] || [])
-                .map(Number)
-                .filter((n) => !isNaN(n))
-                .sort((a, b) => a - b);
-
-              if (hasConsecutiveSeats(seats, minSeats)) {
-                isAvailable = true;
-                break;
-              }
-            }
-          }
-          if (isAvailable) break;
-        }
+        // Fallback: groups without offerIds — we already validated seats above
+        isAvailable = true;
       }
     }
 
@@ -193,13 +195,25 @@ export async function fetchDE({ eventId, section, minSeats = 1, maxPrice }) {
             );
         if (matchingKeys.length === 0) continue;
 
-        // Floor section matched — evaluate prices via this group's offerIds
+
+
+        // Evaluate prices via this group's offerIds
         if (offerIds.length > 0) {
           for (const offerId of offerIds) {
             const offer = offersMap[offerId];
             if (!offer) continue;
 
-            const offerPrice = offer.price?.total;
+
+
+            let offerPrice = null;
+            if (offer.price && offer.price.total != null) {
+              offerPrice = offer.price.total;
+            } else if (priceMap && offer.priceType && offer.priceLevel) {
+              if (priceMap[offer.priceType] && priceMap[offer.priceType][offer.priceLevel] != null) {
+                offerPrice = priceMap[offer.priceType][offer.priceLevel];
+              }
+            }
+
             if (offerPrice == null) continue;
 
             // Track cheapest price that matches section + seats

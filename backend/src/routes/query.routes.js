@@ -5,6 +5,7 @@ import { fetchEventMetadata } from "../utils/fetchEventMetadata.js";
 import { runQuery } from "../services/runQuery.js";
 import { fetchDEManifestSections } from "../../fetchDEManifestSections.js";
 import { fetchESManifestSections } from "../../fetchESManifestSections.js";
+import { fetchNLManifestSections } from "../../fetchNLManifestSections.js";
 import { fetchUKManifestSections } from "../../fetchUKManifestSections.js";
 import { SUPPORTED_SALE_CURRENCIES } from "../utils/currencyConfig.js";
 import {
@@ -32,9 +33,9 @@ router.get("/manifest-sections", async (req, res) => {
       return res.status(400).json({ error: err.message });
     }
 
-    if (parsed.domain !== "DE" && parsed.domain !== "ES" && parsed.domain !== "UK") {
+    if (parsed.domain !== "DE" && parsed.domain !== "ES" && parsed.domain !== "UK" && parsed.domain !== "NL") {
       return res.status(400).json({
-        error: `Manifest bölümleri yardımcısı yalnızca DE, ES ve UK etki alanları için desteklenir, alınan: ${parsed.domain}`,
+        error: `Manifest bölümleri yardımcısı yalnızca DE, ES, UK ve NL etki alanları için desteklenir, alınan: ${parsed.domain}`,
       });
     }
 
@@ -52,6 +53,11 @@ router.get("/manifest-sections", async (req, res) => {
     } else if (parsed.domain === "UK") {
       result = await fetchUKManifestSections({
         eventId: parsed.eventId,
+      });
+    } else if (parsed.domain === "NL") {
+      result = await fetchNLManifestSections({
+        eventId: parsed.eventId,
+        domain: "nl",
       });
     }
 
@@ -258,9 +264,41 @@ router.patch("/:id/resume", async (req, res) => {
 // Purchase a query
 router.patch("/:id/purchase", async (req, res) => {
   try {
+    const currentQuery = await prisma.query.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!currentQuery) {
+      return res.status(404).json({ error: "Sorgu bulunamadı" });
+    }
+
+    const updateData = { status: "PURCHASED" };
+
+    // Eğer bilet satın alınırken sistem koltukları kilitlediği için scraper "FINDING" durumuna 
+    // düştüyse ve foundPrice kaybolduysa, kâr hesaplayabilmek için son başarılı logdan fiyatı kurtaralım
+    if (currentQuery.foundPrice == null) {
+      const lastFoundLog = await prisma.checkResult.findFirst({
+        where: {
+          queryId: req.params.id,
+          OR: [
+            { status: "FOUND" },
+            { priceExceeded: true, foundPrice: { not: null } },
+          ],
+        },
+        orderBy: { checkedAt: "desc" },
+      });
+
+      if (lastFoundLog) {
+        updateData.foundPrice = lastFoundLog.foundPrice;
+        if (lastFoundLog.foundSection) {
+          updateData.foundSection = lastFoundLog.foundSection;
+        }
+      }
+    }
+
     const query = await prisma.query.update({
       where: { id: req.params.id },
-      data: { status: "PURCHASED" },
+      data: updateData,
     });
     res.json(query);
   } catch (err) {

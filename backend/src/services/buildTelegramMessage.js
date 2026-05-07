@@ -53,10 +53,17 @@ export function buildTelegramMessage(query) {
     `🎟️ BİLET BULUNDU!`,
     ``,
     `📋 Sipariş: ${orderNo}`,
+  ];
+
+  if (query.description) {
+    lines.push(`📝 Not: ${query.description}`);
+  }
+
+  lines.push(
     `🎤 Etkinlik: ${eventName}`,
     `📅 Tarih: ${formattedDate}`,
     `📍 Bölüm: ${section}`,
-  ];
+  );
 
   if (query.foundSection) {
     lines.push(`✅ Bulunan Bölüm: ${query.foundSection}`);

@@ -35,6 +35,13 @@ export async function fetchEventMetadata(eventUrl) {
          headers["Referer"] = "https://www.ticketmaster.es/";
          headers["Origin"] = "https://www.ticketmaster.es";
       }
+    } else if (eventUrl.includes("ticketmaster.nl")) {
+      const tmNlCookie = process.env.TM_NL_COOKIE || "";
+      if (tmNlCookie) {
+         headers["Cookie"] = tmNlCookie;
+         headers["Referer"] = "https://www.ticketmaster.nl/";
+         headers["Origin"] = "https://www.ticketmaster.nl";
+      }
     } else if (eventUrl.includes("ticketmaster.co.uk")) {
       const tmUkCookie = process.env.TM_UK_COOKIE || "";
       if (tmUkCookie) {

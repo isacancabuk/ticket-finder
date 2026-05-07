@@ -39,17 +39,18 @@ It is critical to distinguish between the different price variables in the syste
 - An asynchronous `setInterval` ticks sequentially. It avoids overlaps with an `isRunning` lock.
 - Uses `getNextQueryToRun.js` enforcing a round-robin style single-thread queue across all active queries.
 
-## Scraper Execution (`fetchDE` / `fetchES`)
+## Scraper Execution (`fetchDE` / `fetchES` / `fetchUK`)
 
 - Matches Sections: If `section` is null or empty, it operates in "Broad Availability Mode" matching *any* active section.
 - Multiple Sections: If `section` contains multiple codes (separated by spaces or commas), it iterates through them to check.
+- Seat Validations: Decoupled from strict offer IDs where appropriate, checking if minimum seat groups are met.
 - Returns `isAvailable`, `foundPrice`, `priceExceeded`, and an array of `foundSections` which `runQuery.js` joins into a string.
 
 ## The Status System (Backend vs Frontend)
 
 The backend schema only tracks: `FINDING, FOUND, STOPPED, PURCHASED, ERROR`.
 The frontend relies on combinations of fields to render a derived "Display Status":
-- If `status === "PURCHASED"` -> `Alındı`
+- If `status === "PURCHASED"` -> `Alındı` (Explicitly marked purchased tickets accurately transition and remain visible with final profit details)
 - If `priceExceeded == true` and `foundPrice != null` -> `Fiyat Aşıldı`
 - If `status === "FOUND"` -> `Bulundu`
 - If `status === "ERROR"` -> `HATA` (regardless of `isAvailable`)
@@ -59,7 +60,7 @@ The frontend relies on combinations of fields to render a derived "Display Statu
 
 - Notifications do not fire on every `runQuery`. They fire on state edge transitions (e.g. `Finding -> Found`) evaluated in `buildNotificationDecision.js`.
 - Because `runQuery.js` retains `isAvailable` during an `ERROR` state, a `FOUND -> ERROR -> FOUND` sequence will *not* trigger a duplicate notification, keeping channels quiet during temporary IP blocks.
-- Localized entirely in Turkish and statically injects the calculated profit/loss margin, found section, and individual ticket pricing if `minSeats > 1`.
+- Localized entirely in Turkish and statically injects the calculated profit/loss margin, found section, user `description` notes, and individual ticket pricing if `minSeats > 1`.
 
 ---
 

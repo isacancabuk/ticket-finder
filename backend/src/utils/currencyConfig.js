@@ -8,6 +8,7 @@ export const DOMAIN_CURRENCY = {
   DE: "EUR",
   UK: "GBP",
   ES: "EUR",
+  NL: "EUR",
 };
 
 // ISO 4217 → display symbol

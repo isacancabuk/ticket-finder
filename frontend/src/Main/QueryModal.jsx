@@ -4,7 +4,7 @@ import { useFetcher } from "react-router-dom";
 import { apiFetch } from "../api";
 import styles from "./QueryModal.module.css";
 
-const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR" };
+const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR", NL: "EUR" };
 const CURRENCY_OPTIONS = [{ code: "EUR" }, { code: "GBP" }, { code: "USD" }];
 
 function formatPrice(cents, currencyCode) {

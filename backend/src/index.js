@@ -33,5 +33,5 @@ app.listen(PORT, HOST, () => {
   // UK scheduler uses 20s interval (heavier pagination-based work)
   // Non-UK scheduler uses 8s interval (lighter, faster domains)
   startScheduler("uk", getNextUKQueryToRun, 30 * 1000);
-  startScheduler("non-uk", getNextNonUKQueryToRun, 8 * 1000);
+  startScheduler("non-uk", getNextNonUKQueryToRun, 7 * 1000);
 });

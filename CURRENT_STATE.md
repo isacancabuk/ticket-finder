@@ -4,15 +4,15 @@ This document outlines the partially implemented, fully implemented, and rough e
 
 ## Working Features (Implemented Today)
 
-- **Query Creation & Editing:** Users can create queries via the header UI. `section` and `maxPrice` constraints are fully optional.
-- **Section Picker helper:** A visual "Bölümler" button fetches the manifest for the event URL and provides a dropdown to select one or multiple sections easily. It shows visually which sections are currently selected in the input.
+- **Query Creation & Editing:** Users can create queries via the header UI. `section`, `maxPrice`, and `description` constraints are fully optional.
+- **Section Picker helper:** A visual "Bölümler" button fetches the manifest for the event URL and provides a dropdown to select one or multiple sections easily, complete with a **search filter**. It shows visually which sections are currently selected in the input.
 - **Broad Availability & Multi-Section Mode:** If a user omits the `section`, the scraper scans all available sections blindly. If multiple sections are inputted (comma/space separated), it evaluates all of them.
 - **Multiple Configurations:** The system supports creating multiple identical queries (same event, same section) simultaneously without unique constraint blocking.
-- **Ticketmaster DE, ES & UK Checks:** Reliable JSON/API based scraping for German (TM_DE), Spanish (TM_ES), and UK (TM_UK) events via `fetch-de.js`, `fetch-es.js`, and `fetch-uk.js`.
-- **Minimum Seat Logic:** `minSeats` property is actively evaluated by checking group quantities.
-- **Profit/Loss Notifications:** Fully Turkish-localized Telegram notifications that dynamically calculate and append actual profit/loss logic based on `salePrice`. Shows found section and per-ticket price breakdowns if minSeats > 1.
+- **Ticketmaster DE, ES & UK Checks:** Reliable JSON/API based scraping for German (TM_DE), Spanish (TM_ES), and UK (TM_UK) events via `fetch-de.js`, `fetch-es.js`, and `fetch-uk.js`. Seat-count validation is robust across all markets.
+- **Minimum Seat Logic:** `minSeats` property is actively evaluated by checking group quantities. Multi-seat queries correctly convert and display the single-seat price in EUR.
+- **Profit/Loss Notifications:** Fully Turkish-localized Telegram notifications that dynamically calculate and append actual profit/loss logic based on `salePrice`. Shows found section, per-ticket price breakdowns if minSeats > 1, and any user-provided `description` notes.
 - **Duplicate Notification Prevention:** Scrapes that fail with temporary errors retain the previous availability state (`isAvailable`), preventing annoying notification spam when the block lifts.
-- **Query Status Pausing:** Users can halt queries (`STOPPED` or `PURCHASED`).
+- **Query Status Pausing & Visibility:** Users can halt queries (`STOPPED`). Tickets explicitly marked as `PURCHASED` accurately transition and remain visibly tracked with final profit details.
 
 ## Current Query Definition (Fields)
 
@@ -25,6 +25,7 @@ This document outlines the partially implemented, fully implemented, and rough e
 - `salePrice`: What the user intends to sell the ticket for (Nullable).
 - `salePriceCurrency`: The explicitly tracked currency (EUR, GBP, USD, etc.) of the salePrice.
 - `orderNo`: User operational identification text.
+- `description`: Optional free-text field for query notes visible across the UI and Telegram.
 
 ## Current UI Behavior
 
