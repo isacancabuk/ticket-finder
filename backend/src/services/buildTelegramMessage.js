@@ -37,7 +37,9 @@ export function buildTelegramMessage(query) {
 
   // Use EUR normalized prices from backend enrichment
   let priceStr = "–";
-  if (query.foundPriceInEUR != null) {
+  if (query.foundPriceInEUR === -1 || query.foundPrice === -1) {
+    priceStr = "Fiyat bilgisi yok";
+  } else if (query.foundPriceInEUR != null) {
     priceStr = formatPriceByCurrency(query.foundPriceInEUR, "EUR");
     if (minSeats > 1) {
       const singlePrice = query.foundPriceInEUR / minSeats;

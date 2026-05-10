@@ -25,6 +25,8 @@ export function parseTicketmasterUrl(url) {
     "ticketmaster.nl": "NL",
     "ticketmaster.pl": "PL",
     "ticketmaster.be": "BE",
+    "ticketmaster.se": "SE",
+    "ticketmaster.ch": "CH",
   };
 
   const domain = domainMap[hostname];

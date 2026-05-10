@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import styles from "./FilterBar.module.css";
 
-const COUNTRIES = ["Tümü", "BE", "DE", "ES", "NL", "PL", "UK"];
+const COUNTRIES = ["Tümü", "BE", "CH", "DE", "ES", "NL", "PL", "SE", "UK"];
 const SITES = ["Tümü", "ticketmaster"];
 const STATUSES = [
   { label: "Tümü", value: "ALL" },
@@ -12,13 +12,28 @@ const STATUSES = [
   { label: "Alındı", value: "PURCHASED" },
 ];
 
-export default function FilterBar({ filterState, onFilterChange }) {
+const STATUS_COUNTER_CONFIG = [
+  { key: "FOUND", label: "Bulundu", color: "#16a34a" },
+  { key: "PRICE_EXCEEDED", label: "Fiyat Aşıldı", color: "#ea580c" },
+  { key: "PURCHASED", label: "Alındı", color: "#2563eb" },
+  { key: "ERROR", label: "Hata", color: "#dc2626" },
+  { key: "FINDING", label: "Aranıyor", color: "#6b7280" },
+  { key: "STOPPED", label: "Durdu", color: "#94a3b8" },
+];
+
+const PROFIT_SORTS = [
+  { label: "↓ En Yüksek", value: "HIGH" },
+  { label: "↑ En Düşük", value: "LOW" },
+];
+
+export default function FilterBar({ filterState, onFilterChange, statusCounts = {} }) {
   const {
     searchQuery,
     selectedCountry,
     selectedSite,
     sortDateAsc,
     selectedStatus,
+    sortByProfit,
   } = filterState;
 
   // Dropdown states
@@ -26,11 +41,12 @@ export default function FilterBar({ filterState, onFilterChange }) {
   const countryRef = useRef(null);
   const siteRef = useRef(null);
   const statusRef = useRef(null);
+  const profitRef = useRef(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
-      const allRefs = [countryRef, siteRef, statusRef];
+      const allRefs = [countryRef, siteRef, statusRef, profitRef];
       const clickedOutside = allRefs.every(
         (ref) => ref.current && !ref.current.contains(e.target),
       );
@@ -60,6 +76,10 @@ export default function FilterBar({ filterState, onFilterChange }) {
     onFilterChange((prev) => ({ ...prev, ...changes }));
   };
 
+  const handleProfitToggle = () => {
+    setOpenDropdown(openDropdown === "profit" ? null : "profit");
+  };
+
   const handleClearFilters = () => {
     onFilterChange({
       searchQuery: "",
@@ -67,6 +87,7 @@ export default function FilterBar({ filterState, onFilterChange }) {
       selectedSite: "Tümü",
       sortDateAsc: false,
       selectedStatus: "ALL",
+      sortByProfit: "HIGH",
     });
   };
 
@@ -188,6 +209,59 @@ export default function FilterBar({ filterState, onFilterChange }) {
             </div>
           )}
         </div>
+
+        {/* Profit Sort */}
+        <div ref={profitRef} className={styles.filterGroup}>
+          <div className={styles.filterLabel}>Kâr</div>
+          <button className={styles.filterButton} onClick={handleProfitToggle}>
+            {PROFIT_SORTS.find((s) => s.value === sortByProfit)?.label || "Yok"}
+            <span className={styles.dropdownIcon}>▼</span>
+          </button>
+          {openDropdown === "profit" && (
+            <div className={styles.dropdown}>
+              {PROFIT_SORTS.map((opt) => (
+                <button
+                  key={opt.value}
+                  className={`${styles.dropdownItem} ${
+                    sortByProfit === opt.value ? styles.active : ""
+                  }`}
+                  onClick={() => {
+                    handleChange({ sortByProfit: opt.value });
+                    setOpenDropdown(null);
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Status Counter Bar */}
+      <div className={styles.statusBar}>
+        {STATUS_COUNTER_CONFIG.map(({ key, label, color }) => {
+          const count = statusCounts[key] || 0;
+          if (count === 0) return null;
+          return (
+            <button
+              key={key}
+              className={`${styles.statusBadge} ${selectedStatus === key ? styles.statusBadgeActive : ""}`}
+              style={{ "--badge-color": color }}
+              onClick={() => {
+                if (selectedStatus === key) {
+                  handleChange({ selectedStatus: "ALL" });
+                } else {
+                  handleChange({ selectedStatus: key });
+                }
+              }}
+            >
+              <span className={styles.statusDot} style={{ background: color }} />
+              <span className={styles.statusCount}>{count}</span>
+              <span className={styles.statusLabel}>{label}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

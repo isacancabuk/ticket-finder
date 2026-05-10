@@ -45,7 +45,9 @@ export async function normalizePricesToEUR(query) {
 
   // Convert found price to EUR if needed
   if (totalFoundPrice != null) {
-    if (foundCurrency === BASE_CURRENCY) {
+    if (totalFoundPrice === -1 || query.foundPrice === -1) {
+      foundPriceInEUR = -1;
+    } else if (foundCurrency === BASE_CURRENCY) {
       foundPriceInEUR = totalFoundPrice;
     } else {
       try {
@@ -80,7 +82,7 @@ export async function normalizePricesToEUR(query) {
  */
 
 export function calculateProfitLoss(salePriceInEUR, foundPriceInEUR) {
-  if (salePriceInEUR == null || foundPriceInEUR == null) {
+  if (salePriceInEUR == null || foundPriceInEUR == null || foundPriceInEUR === -1) {
     return {
       profitLoss: null,
       profitLossCurrency: null,

@@ -157,10 +157,16 @@ export async function fetchES({ eventId, section, minSeats = 1, maxPrice }) {
             }
           }
 
-          if (offerPrice == null) continue;
+          if (offerPrice == null) {
+            isAvailable = true;
+            if (cheapestMatchingPrice === null) {
+              cheapestMatchingPrice = -1;
+            }
+            continue;
+          }
 
           // Track cheapest price that matches section + seats
-          if (cheapestMatchingPrice === null || offerPrice < cheapestMatchingPrice) {
+          if (cheapestMatchingPrice === null || cheapestMatchingPrice === -1 || offerPrice < cheapestMatchingPrice) {
             cheapestMatchingPrice = offerPrice;
           }
 
@@ -214,10 +220,16 @@ export async function fetchES({ eventId, section, minSeats = 1, maxPrice }) {
               }
             }
 
-            if (offerPrice == null) continue;
+            if (offerPrice == null) {
+              isAvailable = true;
+              if (cheapestMatchingPrice === null) {
+                cheapestMatchingPrice = -1;
+              }
+              continue;
+            }
 
             // Track cheapest price that matches section + seats
-            if (cheapestMatchingPrice === null || offerPrice < cheapestMatchingPrice) {
+            if (cheapestMatchingPrice === null || cheapestMatchingPrice === -1 || offerPrice < cheapestMatchingPrice) {
               cheapestMatchingPrice = offerPrice;
             }
 

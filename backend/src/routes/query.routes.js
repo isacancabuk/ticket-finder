@@ -4,10 +4,12 @@ import { parseTicketmasterUrl } from "../utils/parseTicketmasterUrl.js";
 import { fetchEventMetadata } from "../utils/fetchEventMetadata.js";
 import { runQuery } from "../services/runQuery.js";
 import { fetchBEManifestSections } from "../../fetchBEManifestSections.js";
+import { fetchCHManifestSections } from "../../fetchCHManifestSections.js";
 import { fetchDEManifestSections } from "../../fetchDEManifestSections.js";
 import { fetchESManifestSections } from "../../fetchESManifestSections.js";
 import { fetchNLManifestSections } from "../../fetchNLManifestSections.js";
 import { fetchPLManifestSections } from "../../fetchPLManifestSections.js";
+import { fetchSEManifestSections } from "../../fetchSEManifestSections.js";
 import { fetchUKManifestSections } from "../../fetchUKManifestSections.js";
 import { SUPPORTED_SALE_CURRENCIES } from "../utils/currencyConfig.js";
 import {
@@ -35,9 +37,9 @@ router.get("/manifest-sections", async (req, res) => {
       return res.status(400).json({ error: err.message });
     }
 
-    if (parsed.domain !== "DE" && parsed.domain !== "ES" && parsed.domain !== "UK" && parsed.domain !== "NL" && parsed.domain !== "PL" && parsed.domain !== "BE") {
+    if (!(["DE","ES","UK","NL","PL","BE","SE","CH"].includes(parsed.domain))) {
       return res.status(400).json({
-        error: `Manifest bölümleri yardımcısı yalnızca DE, ES, UK, NL, PL ve BE etki alanları için desteklenir, alınan: ${parsed.domain}`,
+        error: `Manifest bölümleri yardımcısı yalnızca DE, ES, UK, NL, PL, BE, SE ve CH etki alanları için desteklenir, alınan: ${parsed.domain}`,
       });
     }
 
@@ -70,6 +72,16 @@ router.get("/manifest-sections", async (req, res) => {
       result = await fetchBEManifestSections({
         eventId: parsed.eventId,
         domain: "be",
+      });
+    } else if (parsed.domain === "SE") {
+      result = await fetchSEManifestSections({
+        eventId: parsed.eventId,
+        domain: "se",
+      });
+    } else if (parsed.domain === "CH") {
+      result = await fetchCHManifestSections({
+        eventId: parsed.eventId,
+        domain: "ch",
       });
     }
 

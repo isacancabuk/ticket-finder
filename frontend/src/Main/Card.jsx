@@ -2,7 +2,7 @@ import { useState } from "react";
 import styles from "./Card.module.css";
 import "/node_modules/flag-icons/css/flag-icons.min.css";
 
-const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR", NL: "EUR", PL: "PLN", BE: "EUR" };
+const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR", NL: "EUR", PL: "PLN", BE: "EUR", SE: "SEK", CH: "CHF" };
 
 function formatPrice(cents, currencyCode) {
   if (cents == null) return "–";
@@ -199,15 +199,19 @@ export default function Card({ query, onClick }) {
               displayStatus === "price_exceeded" ||
               displayStatus === "purchased") &&
             foundPrice != null ? (
-              <>
-                <span className="whitespace-nowrap">{formatPrice(foundPrice, foundCurrency)}{"\u00A0"}bulundu</span>
-                {foundPriceInEUR != null && foundCurrency !== "EUR" && (
-                  <span className="text-xs text-gray-500 whitespace-nowrap">
-                    ({formatPrice(foundPriceInEUR, "EUR")})
-                  </span>
-                )}
-                {profitLossLine && <span className="whitespace-nowrap">{profitLossLine}</span>}
-              </>
+              foundPrice === -1 ? (
+                <span className="whitespace-nowrap font-bold text-gray-500">Fiyat bilgisi yok (Bilet bulundu)</span>
+              ) : (
+                <>
+                  <span className="whitespace-nowrap">{formatPrice(foundPrice, foundCurrency)}{"\u00A0"}bulundu</span>
+                  {foundPriceInEUR != null && foundCurrency !== "EUR" && (
+                    <span className="text-xs text-gray-500 whitespace-nowrap">
+                      ({formatPrice(foundPriceInEUR, "EUR")})
+                    </span>
+                  )}
+                  {profitLossLine && <span className="whitespace-nowrap">{profitLossLine}</span>}
+                </>
+              )
             ) : (
               "\u00A0"
             )}

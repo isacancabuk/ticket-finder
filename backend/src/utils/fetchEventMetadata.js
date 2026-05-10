@@ -56,6 +56,20 @@ export async function fetchEventMetadata(eventUrl) {
          headers["Referer"] = "https://www.ticketmaster.be/";
          headers["Origin"] = "https://www.ticketmaster.be";
       }
+    } else if (eventUrl.includes("ticketmaster.se")) {
+      const tmSeCookie = process.env.TM_SE_COOKIE || "";
+      if (tmSeCookie) {
+         headers["Cookie"] = tmSeCookie;
+         headers["Referer"] = "https://www.ticketmaster.se/";
+         headers["Origin"] = "https://www.ticketmaster.se";
+      }
+    } else if (eventUrl.includes("ticketmaster.ch")) {
+      const tmChCookie = process.env.TM_CH_COOKIE || "";
+      if (tmChCookie) {
+         headers["Cookie"] = tmChCookie;
+         headers["Referer"] = "https://www.ticketmaster.ch/";
+         headers["Origin"] = "https://www.ticketmaster.ch";
+      }
     } else if (eventUrl.includes("ticketmaster.co.uk")) {
       const tmUkCookie = process.env.TM_UK_COOKIE || "";
       if (tmUkCookie) {

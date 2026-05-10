@@ -105,7 +105,7 @@ export async function getNextUKQueryToRun() {
 }
 
 /**
- * Returns the next non-UK query (DE, ES, NL, PL, or BE) that should be checked.
+ * Returns the next non-UK query (DE, ES, NL, PL, BE, SE, or CH) that should be checked.
  * Used by the dedicated non-UK scheduler lane.
  *
  * @returns {Promise<import("@prisma/client").Query | null>}
@@ -115,7 +115,7 @@ export async function getNextNonUKQueryToRun() {
   const neverChecked = await prisma.query.findFirst({
     where: {
       ...ELIGIBLE_WHERE,
-      domain: { in: ["DE", "ES", "NL", "PL", "BE"] },
+      domain: { in: ["DE", "ES", "NL", "PL", "BE", "SE", "CH"] },
       lastCheckedAt: null,
     },
     orderBy: { createdAt: "asc" },
@@ -126,7 +126,7 @@ export async function getNextNonUKQueryToRun() {
   const query = await prisma.query.findFirst({
     where: {
       ...ELIGIBLE_WHERE,
-      domain: { in: ["DE", "ES", "NL", "PL", "BE"] },
+      domain: { in: ["DE", "ES", "NL", "PL", "BE", "SE", "CH"] },
     },
     orderBy: OLDEST_FIRST,
   });

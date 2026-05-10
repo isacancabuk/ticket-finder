@@ -42,7 +42,18 @@ export default function MainSection({ queries = [], onCardClick }) {
     selectedSite: "Tümü",
     sortDateAsc: false,
     selectedStatus: "ALL",
+    sortByProfit: "HIGH", // HIGH, LOW
   });
+
+  // Compute status counts from ALL queries (unfiltered)
+  const statusCounts = useMemo(() => {
+    const counts = { FINDING: 0, FOUND: 0, PRICE_EXCEEDED: 0, PURCHASED: 0, ERROR: 0, STOPPED: 0 };
+    queries.forEach((q) => {
+      const ds = getDisplayStatus(q);
+      if (counts[ds] !== undefined) counts[ds]++;
+    });
+    return counts;
+  }, [queries]);
 
   // Sort and filter queries
   const displayedQueries = useMemo(() => {
@@ -99,11 +110,20 @@ export default function MainSection({ queries = [], onCardClick }) {
       return true;
     });
 
-    // Sort: first by status priority (for status order), then by date
+    // Sort: first by status priority, then profit or date
     filtered.sort((a, b) => {
       const pA = SORT_PRIORITY[a.displayStatus] || 99;
       const pB = SORT_PRIORITY[b.displayStatus] || 99;
       if (pA !== pB) return pA - pB;
+
+      // Profit sorting (always active, takes priority over date)
+      const profitA = a.profitLoss ?? -Infinity;
+      const profitB = b.profitLoss ?? -Infinity;
+      if (profitA !== profitB) {
+        return filterState.sortByProfit === "HIGH"
+          ? profitB - profitA
+          : profitA - profitB;
+      }
 
       // Use eventDate if available, otherwise fall back to updatedAt or createdAt
       const timeA = a.eventDate
@@ -135,7 +155,7 @@ export default function MainSection({ queries = [], onCardClick }) {
 
   return (
     <div className="flex flex-col items-center w-full pb-20">
-      <FilterBar filterState={filterState} onFilterChange={setFilterState} />
+      <FilterBar filterState={filterState} onFilterChange={setFilterState} statusCounts={statusCounts} />
 
       <div className="flex flex-col items-center">
         {displayedQueries.map((query) => (
