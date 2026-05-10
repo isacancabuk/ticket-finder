@@ -12,6 +12,8 @@ export async function apiFetch(endpoint, options = {}) {
   const headers = {
     // Bypass ngrok's browser warning page which interferes with missing CORS headers / JSON fetch
     "ngrok-skip-browser-warning": "true",
+    // Bypass localtunnel's reminder page
+    "Bypass-Tunnel-Reminder": "true",
     ...options.headers,
   };
 
