@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import styles from "./FilterBar.module.css";
 
-const COUNTRIES = ["Tümü", "BE", "CH", "DE", "ES", "NL", "PL", "SE", "UK"];
+const COUNTRIES = ["Tümü", "BE", "CH", "DE", "ES", "MX", "NL", "PL", "SE", "UK"];
 const SITES = ["Tümü", "ticketmaster"];
 const STATUSES = [
   { label: "Tümü", value: "ALL" },
