@@ -61,7 +61,7 @@ export function parseTicketmasterUrl(url) {
   // DE/ES: /slug/{numericId}        → slug is segments[length - 2]
   // UK:    /slug/event/{alphaId}    → slug is segments[length - 3]
   let eventSlug = null;
-  if (domain === "UK" && segments.length >= 3) {
+  if ((domain === "UK" || domain === "MX") && segments.length >= 3) {
     eventSlug = decodeURIComponent(segments[segments.length - 3]);
   } else if (segments.length >= 2) {
     eventSlug = decodeURIComponent(segments[segments.length - 2]);
