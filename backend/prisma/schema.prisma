@@ -15,6 +15,7 @@ enum Domain {
   BE
   SE
   CH
+  MX
 }
 
 enum Site {

@@ -70,6 +70,13 @@ export async function fetchEventMetadata(eventUrl) {
          headers["Referer"] = "https://www.ticketmaster.ch/";
          headers["Origin"] = "https://www.ticketmaster.ch";
       }
+    } else if (eventUrl.includes("ticketmaster.com.mx")) {
+      const tmMxCookie = process.env.TM_MX_COOKIE || "";
+      if (tmMxCookie) {
+         headers["Cookie"] = tmMxCookie;
+         headers["Referer"] = "https://www.ticketmaster.com.mx/";
+         headers["Origin"] = "https://www.ticketmaster.com.mx";
+      }
     } else if (eventUrl.includes("ticketmaster.co.uk")) {
       const tmUkCookie = process.env.TM_UK_COOKIE || "";
       if (tmUkCookie) {

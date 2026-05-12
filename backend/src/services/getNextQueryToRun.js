@@ -133,3 +133,33 @@ export async function getNextNonUKQueryToRun() {
 
   return query;
 }
+
+/**
+ * Returns the next MX query that should be checked.
+ * Used by the dedicated MX scheduler lane.
+ *
+ * @returns {Promise<import("@prisma/client").Query | null>}
+ */
+export async function getNextMXQueryToRun() {
+  // Prioritise never-checked queries
+  const neverChecked = await prisma.query.findFirst({
+    where: {
+      ...ELIGIBLE_WHERE,
+      domain: "MX",
+      lastCheckedAt: null,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (neverChecked) return neverChecked;
+
+  const query = await prisma.query.findFirst({
+    where: {
+      ...ELIGIBLE_WHERE,
+      domain: "MX",
+    },
+    orderBy: OLDEST_FIRST,
+  });
+
+  return query;
+}

@@ -7,6 +7,7 @@ import { startScheduler } from "./scheduler/startScheduler.js";
 import {
   getNextUKQueryToRun,
   getNextNonUKQueryToRun,
+  getNextMXQueryToRun,
 } from "./services/getNextQueryToRun.js";
 
 const app = express();
@@ -32,6 +33,8 @@ app.listen(PORT, HOST, () => {
   // Start two independent scheduler lanes: one for UK, one for non-UK (DE/ES)
   // UK scheduler uses 20s interval (heavier pagination-based work)
   // Non-UK scheduler uses 8s interval (lighter, faster domains)
+  // MX scheduler uses 30s interval as requested (heavy pagination like UK)
   startScheduler("uk", getNextUKQueryToRun, 30 * 1000);
   startScheduler("non-uk", getNextNonUKQueryToRun, 7 * 1000);
+  startScheduler("mx", getNextMXQueryToRun, 30 * 1000);
 });

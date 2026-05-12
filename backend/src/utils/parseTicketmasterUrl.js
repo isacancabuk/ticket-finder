@@ -27,6 +27,7 @@ export function parseTicketmasterUrl(url) {
     "ticketmaster.be": "BE",
     "ticketmaster.se": "SE",
     "ticketmaster.ch": "CH",
+    "ticketmaster.com.mx": "MX",
   };
 
   const domain = domainMap[hostname];
@@ -46,9 +47,9 @@ export function parseTicketmasterUrl(url) {
   // eventId = last segment
   // DE/ES use numeric-only IDs; UK uses alphanumeric (hex) IDs
   const eventId = segments[segments.length - 1];
-  if (domain === "UK") {
+  if (domain === "UK" || domain === "MX") {
     if (!/^[A-Za-z0-9]+$/.test(eventId)) {
-      throw new Error(`UK Event ID must be alphanumeric, got: "${eventId}"`);
+      throw new Error(`${domain} Event ID must be alphanumeric, got: "${eventId}"`);
     }
   } else {
     if (!/^\d+$/.test(eventId)) {

@@ -1,6 +1,7 @@
 import prisma from "../prisma.js";
 import { fetchBE } from "../../fetch-be.js";
 import { fetchCH } from "../../fetch-ch.js";
+import { fetchMX } from "../../fetch-mx.js";
 import { fetchDE } from "../../fetch-de.js";
 import { fetchES } from "../../fetch-es.js";
 import { fetchNL } from "../../fetch-nl.js";
@@ -115,6 +116,13 @@ export async function runQuery(queryId) {
         });
       } else if (query.domain === "CH") {
         sectionResult = await fetchCH({
+          eventId: query.eventId,
+          section: section,
+          minSeats: query.minSeats || 1,
+          maxPrice: query.maxPrice,
+        });
+      } else if (query.domain === "MX") {
+        sectionResult = await fetchMX({
           eventId: query.eventId,
           section: section,
           minSeats: query.minSeats || 1,

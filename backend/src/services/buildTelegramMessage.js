@@ -1,4 +1,7 @@
-import { formatPriceByCurrency } from "../utils/currencyConfig.js";
+import {
+  formatPriceByCurrency,
+  DOMAIN_CURRENCY,
+} from "../utils/currencyConfig.js";
 
 /**
  * Builds a Telegram notification message from a completed query result.
@@ -45,17 +48,18 @@ export function buildTelegramMessage(query) {
       const singlePrice = query.foundPriceInEUR / minSeats;
       priceStr += ` (${formatPriceByCurrency(singlePrice, "EUR")} / bilet)`;
     }
+    // Add original price in native currency for comparison
+    if (query.foundPrice != null) {
+      const originalCurrency = DOMAIN_CURRENCY[domain] || "GBP";
+      priceStr += ` (Original: ${formatPriceByCurrency(query.foundPrice, originalCurrency)})`;
+    }
   }
   const salePriceStr =
     query.salePriceInEUR != null
       ? formatPriceByCurrency(query.salePriceInEUR, "EUR")
       : "–";
 
-  let lines = [
-    `🎟️ BİLET BULUNDU!`,
-    ``,
-    `📋 Sipariş: ${orderNo}`,
-  ];
+  let lines = [`🎟️ BİLET BULUNDU!`, ``, `📋 Sipariş: ${orderNo}`];
 
   if (query.description) {
     lines.push(`📝 Not: ${query.description}`);

@@ -13,6 +13,7 @@ export const DOMAIN_CURRENCY = {
   BE: "EUR",
   SE: "SEK",
   CH: "CHF",
+  MX: "MXN",
 };
 
 // ISO 4217 → display symbol
@@ -24,10 +25,11 @@ export const CURRENCY_SYMBOLS = {
   PLN: "zł",
   SEK: "kr",
   CHF: "CHF",
+  MXN: "$",
 };
 
 // Allowed currencies for salePrice input
-export const SUPPORTED_SALE_CURRENCIES = ["EUR", "GBP", "USD", "TRY", "PLN", "SEK", "CHF"];
+export const SUPPORTED_SALE_CURRENCIES = ["EUR", "GBP", "USD", "TRY", "PLN", "SEK", "CHF", "MXN"];
 
 // System-wide base currency for future FX normalization
 export const BASE_CURRENCY = "EUR";

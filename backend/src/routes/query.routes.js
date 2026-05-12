@@ -7,6 +7,7 @@ import { fetchBEManifestSections } from "../../fetchBEManifestSections.js";
 import { fetchCHManifestSections } from "../../fetchCHManifestSections.js";
 import { fetchDEManifestSections } from "../../fetchDEManifestSections.js";
 import { fetchESManifestSections } from "../../fetchESManifestSections.js";
+import { fetchMXManifestSections } from "../../fetchMXManifestSections.js";
 import { fetchNLManifestSections } from "../../fetchNLManifestSections.js";
 import { fetchPLManifestSections } from "../../fetchPLManifestSections.js";
 import { fetchSEManifestSections } from "../../fetchSEManifestSections.js";
@@ -37,9 +38,9 @@ router.get("/manifest-sections", async (req, res) => {
       return res.status(400).json({ error: err.message });
     }
 
-    if (!(["DE","ES","UK","NL","PL","BE","SE","CH"].includes(parsed.domain))) {
+    if (!(["DE","ES","UK","NL","PL","BE","SE","CH","MX"].includes(parsed.domain))) {
       return res.status(400).json({
-        error: `Manifest bölümleri yardımcısı yalnızca DE, ES, UK, NL, PL, BE, SE ve CH etki alanları için desteklenir, alınan: ${parsed.domain}`,
+        error: `Manifest bölümleri yardımcısı yalnızca DE, ES, UK, NL, PL, BE, SE, CH ve MX etki alanları için desteklenir, alınan: ${parsed.domain}`,
       });
     }
 
@@ -82,6 +83,10 @@ router.get("/manifest-sections", async (req, res) => {
       result = await fetchCHManifestSections({
         eventId: parsed.eventId,
         domain: "ch",
+      });
+    } else if (parsed.domain === "MX") {
+      result = await fetchMXManifestSections({
+        eventId: parsed.eventId,
       });
     }
 
