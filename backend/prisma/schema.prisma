@@ -16,10 +16,12 @@ enum Domain {
   SE
   CH
   MX
+  FIFA
 }
 
 enum Site {
   TICKETMASTER
+  FIFA
 }
 
 enum QueryStatus {

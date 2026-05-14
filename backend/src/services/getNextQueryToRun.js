@@ -163,3 +163,34 @@ export async function getNextMXQueryToRun() {
 
   return query;
 }
+
+/**
+ * Returns the next FIFA query that should be checked.
+ * Used by the dedicated FIFA scheduler lane.
+ *
+ * @returns {Promise<import("@prisma/client").Query | null>}
+ */
+export async function getNextFIFAQueryToRun() {
+  // Prioritise never-checked queries
+  const neverChecked = await prisma.query.findFirst({
+    where: {
+      ...ELIGIBLE_WHERE,
+      domain: "FIFA",
+      lastCheckedAt: null,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (neverChecked) return neverChecked;
+
+  const query = await prisma.query.findFirst({
+    where: {
+      ...ELIGIBLE_WHERE,
+      domain: "FIFA",
+    },
+    orderBy: OLDEST_FIRST,
+  });
+
+  return query;
+}
+

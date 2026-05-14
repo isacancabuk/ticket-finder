@@ -17,7 +17,44 @@ export function parseTicketmasterUrl(url) {
   // Normalize hostname: strip "www."
   const hostname = parsed.hostname.replace(/^www\./, "");
 
-  // Detect domain from hostname
+  // ── FIFA URL handling ──────────────────────────────────────
+  // Pattern: fwc26-shop-{currency}.tickets.fifa.com/secure/selection/event/seat/performance/{perfId}/lang/en
+  const fifaMatch = hostname.match(/^fwc26-shop-(\w+)\.tickets\.fifa\.com$/);
+  if (fifaMatch) {
+    const currency = fifaMatch[1].toUpperCase(); // e.g. "USD", "EUR"
+    const segments = parsed.pathname.split("/").filter(Boolean);
+
+    // Find perfId: it's the segment after "performance"
+    const perfIdx = segments.indexOf("performance");
+    let eventId = null;
+    if (perfIdx !== -1 && perfIdx + 1 < segments.length) {
+      eventId = segments[perfIdx + 1];
+    }
+
+    // Also check for product-based URLs: /secure/selection/event/date/product/{productId}/lang/en
+    if (!eventId) {
+      const prodIdx = segments.indexOf("product");
+      if (prodIdx !== -1 && prodIdx + 1 < segments.length) {
+        eventId = segments[prodIdx + 1];
+      }
+    }
+
+    if (!eventId || !/^\d+$/.test(eventId)) {
+      throw new Error(`FIFA URL must contain a numeric performance or product ID, got: "${eventId}"`);
+    }
+
+    return {
+      site: "FIFA",
+      domain: "FIFA",
+      eventId,
+      eventSlug: null,
+      eventName: null,
+      eventUrl: url,
+      currency, // extra field for FIFA
+    };
+  }
+
+  // ── Ticketmaster URL handling ──────────────────────────────
   const domainMap = {
     "ticketmaster.de": "DE",
     "ticketmaster.co.uk": "UK",
@@ -33,7 +70,7 @@ export function parseTicketmasterUrl(url) {
   const domain = domainMap[hostname];
   if (!domain) {
     throw new Error(
-      `Unsupported Ticketmaster domain: ${hostname}. Supported: ${Object.keys(domainMap).join(", ")}`
+      `Unsupported domain: ${hostname}. Supported: Ticketmaster (${Object.keys(domainMap).join(", ")}), FIFA (fwc26-shop-*.tickets.fifa.com)`
     );
   }
 

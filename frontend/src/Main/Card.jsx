@@ -2,7 +2,7 @@ import { useState } from "react";
 import styles from "./Card.module.css";
 import "/node_modules/flag-icons/css/flag-icons.min.css";
 
-const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR", NL: "EUR", PL: "PLN", BE: "EUR", SE: "SEK", CH: "CHF", MX: "MXN" };
+const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR", NL: "EUR", PL: "PLN", BE: "EUR", SE: "SEK", CH: "CHF", MX: "MXN", FIFA: "USD" };
 
 function formatPrice(cents, currencyCode) {
   if (cents == null) return "–";
@@ -47,7 +47,8 @@ export default function Card({ query, onClick }) {
     salePriceInEUR,
     foundPriceInEUR,
   } = query;
-  const site = "TicketMaster";
+  const isFifa = domain === "FIFA";
+  const site = isFifa ? "FifaLogo.svg" : "TicketMaster";
   const imgUrl = new URL(`../assets/${site}.png`, import.meta.url).href;
   const displayStatus = getDisplayStatus(query);
   const statusLabel = STATUS_LABELS[displayStatus] || status;
@@ -155,7 +156,11 @@ export default function Card({ query, onClick }) {
               )}
             </p>
           )}
-          <span className={`fi fi-${countryCode} ${styles.flag}`}></span>
+          {isFifa ? (
+            <span className={styles.flag} style={{ fontSize: "1.6rem" }}>⚽</span>
+          ) : (
+            <span className={`fi fi-${countryCode} ${styles.flag}`}></span>
+          )}
           <p className="font-bold">{domain || "DE"}</p>
         </div>
 
@@ -174,13 +179,13 @@ export default function Card({ query, onClick }) {
         </div>
 
         <div className="flex flex-col items-center gap-1">
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center text-center">
             <p className="text-sm font-bold text-gray-700">
               {salePrice != null ? (
                 <>
                   <span className="whitespace-nowrap">{formatPrice(salePrice, saleCurrency)}{"\u00A0"}satış{"\u00A0"}fiyatı</span>
                   {salePriceInEUR != null && salePriceCurrency !== "EUR" && (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 block sm:inline">
                       {" "}
                       ({formatPrice(salePriceInEUR, "EUR")})
                     </span>
@@ -194,7 +199,7 @@ export default function Card({ query, onClick }) {
           <p className={`font-bold text-2xl ${styles.statusText}`}>
             {statusLabel}
           </p>
-          <p className={styles.priceInfo} style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "2px 4px" }}>
+          <p className={`${styles.priceInfo} text-center`} style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "2px 4px" }}>
             {(displayStatus === "found" ||
               displayStatus === "price_exceeded" ||
               displayStatus === "purchased") &&

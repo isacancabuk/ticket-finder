@@ -14,6 +14,7 @@ export const DOMAIN_CURRENCY = {
   SE: "SEK",
   CH: "CHF",
   MX: "MXN",
+  FIFA: "USD",
 };
 
 // ISO 4217 → display symbol

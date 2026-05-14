@@ -3,15 +3,16 @@ import prisma from "../prisma.js";
 import { parseTicketmasterUrl } from "../utils/parseTicketmasterUrl.js";
 import { fetchEventMetadata } from "../utils/fetchEventMetadata.js";
 import { runQuery } from "../services/runQuery.js";
-import { fetchBEManifestSections } from "../../fetchBEManifestSections.js";
-import { fetchCHManifestSections } from "../../fetchCHManifestSections.js";
-import { fetchDEManifestSections } from "../../fetchDEManifestSections.js";
-import { fetchESManifestSections } from "../../fetchESManifestSections.js";
-import { fetchMXManifestSections } from "../../fetchMXManifestSections.js";
-import { fetchNLManifestSections } from "../../fetchNLManifestSections.js";
-import { fetchPLManifestSections } from "../../fetchPLManifestSections.js";
-import { fetchSEManifestSections } from "../../fetchSEManifestSections.js";
-import { fetchUKManifestSections } from "../../fetchUKManifestSections.js";
+import { fetchBEManifestSections } from "../manifests/fetchBEManifestSections.js";
+import { fetchCHManifestSections } from "../manifests/fetchCHManifestSections.js";
+import { fetchDEManifestSections } from "../manifests/fetchDEManifestSections.js";
+import { fetchESManifestSections } from "../manifests/fetchESManifestSections.js";
+import { fetchFIFAManifestSections } from "../manifests/fetchFIFAManifestSections.js";
+import { fetchMXManifestSections } from "../manifests/fetchMXManifestSections.js";
+import { fetchNLManifestSections } from "../manifests/fetchNLManifestSections.js";
+import { fetchPLManifestSections } from "../manifests/fetchPLManifestSections.js";
+import { fetchSEManifestSections } from "../manifests/fetchSEManifestSections.js";
+import { fetchUKManifestSections } from "../manifests/fetchUKManifestSections.js";
 import { SUPPORTED_SALE_CURRENCIES } from "../utils/currencyConfig.js";
 import {
   normalizePricesToEUR,
@@ -38,9 +39,9 @@ router.get("/manifest-sections", async (req, res) => {
       return res.status(400).json({ error: err.message });
     }
 
-    if (!(["DE","ES","UK","NL","PL","BE","SE","CH","MX"].includes(parsed.domain))) {
+    if (!(["DE","ES","UK","NL","PL","BE","SE","CH","MX","FIFA"].includes(parsed.domain))) {
       return res.status(400).json({
-        error: `Manifest bölümleri yardımcısı yalnızca DE, ES, UK, NL, PL, BE, SE, CH ve MX etki alanları için desteklenir, alınan: ${parsed.domain}`,
+        error: `Manifest bölümleri yardımcısı yalnızca DE, ES, UK, NL, PL, BE, SE, CH, MX ve FIFA etki alanları için desteklenir, alınan: ${parsed.domain}`,
       });
     }
 
@@ -86,6 +87,10 @@ router.get("/manifest-sections", async (req, res) => {
       });
     } else if (parsed.domain === "MX") {
       result = await fetchMXManifestSections({
+        eventId: parsed.eventId,
+      });
+    } else if (parsed.domain === "FIFA") {
+      result = await fetchFIFAManifestSections({
         eventId: parsed.eventId,
       });
     }
@@ -205,8 +210,11 @@ router.post("/", async (req, res) => {
 
     const { site, domain, eventId, eventSlug, eventName, eventUrl } = parsed;
 
-    // Fetch event metadata
-    const metadata = await fetchEventMetadata(eventUrl);
+    // Fetch event metadata (skip for FIFA — requires special cookies, scheduler will populate later)
+    let metadata = { eventLocation: null, eventDate: null };
+    if (domain !== "FIFA") {
+      metadata = await fetchEventMetadata(eventUrl);
+    }
 
     try {
       const query = await prisma.query.create({

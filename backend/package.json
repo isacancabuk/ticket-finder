@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "fetch-availability.js",
   "scripts": {
-    "dev": "nodemon src/index.js",
+    "dev": "node start.js",
     "start": "node src/index.js",
     "db:push": "prisma db push",
     "db:generate": "prisma generate"
@@ -18,13 +18,21 @@
     "axios": "^1.12.2",
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "pg": "^8.18.0"
+    "got-scraping": "^4.2.1",
+    "pg": "^8.18.0",
+    "playwright": "^1.60.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer": "^24.43.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "puppeteer-real-browser": "^1.4.4"
   },
   "type": "module",
   "devDependencies": {
+    "@inquirer/prompts": "^8.4.3",
     "@ljharb/tsconfig": "^0.3.2",
     "@types/node": "^25.1.0",
-    "nodemon": "^3.1.11",
+    "nodemon": "^3.1.14",
     "prisma": "^7.3.0"
   }
 }

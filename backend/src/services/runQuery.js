@@ -1,13 +1,14 @@
 import prisma from "../prisma.js";
-import { fetchBE } from "../../fetch-be.js";
-import { fetchCH } from "../../fetch-ch.js";
-import { fetchMX } from "../../fetch-mx.js";
-import { fetchDE } from "../../fetch-de.js";
-import { fetchES } from "../../fetch-es.js";
-import { fetchNL } from "../../fetch-nl.js";
-import { fetchPL } from "../../fetch-pl.js";
-import { fetchSE } from "../../fetch-se.js";
-import { fetchUK } from "../../fetch-uk.js";
+import { fetchBE } from "../fetchers/fetch-be.js";
+import { fetchCH } from "../fetchers/fetch-ch.js";
+import { fetchFIFA } from "../fetchers/fetch-fifa.js";
+import { fetchMX } from "../fetchers/fetch-mx.js";
+import { fetchDE } from "../fetchers/fetch-de.js";
+import { fetchES } from "../fetchers/fetch-es.js";
+import { fetchNL } from "../fetchers/fetch-nl.js";
+import { fetchPL } from "../fetchers/fetch-pl.js";
+import { fetchSE } from "../fetchers/fetch-se.js";
+import { fetchUK } from "../fetchers/fetch-uk.js";
 import {
   normalizePricesToEUR,
   calculateProfitLoss,
@@ -50,11 +51,18 @@ export async function runQuery(queryId) {
   let result;
 
   try {
-    // Parse multiple sections (space or comma separated)
+    // Parse multiple sections
+    // FIFA: split on comma only (category names contain spaces, e.g. "Category 1")
+    // Ticketmaster: split on space or comma (section codes are single tokens, e.g. "101 102")
     const sectionString = query.section ? query.section.trim() : null;
-    const sectionsToCheck = sectionString
-      ? sectionString.split(/[\s,]+/).filter((s) => s.length > 0)
-      : [null]; // null means broad availability mode
+    let sectionsToCheck;
+    if (!sectionString) {
+      sectionsToCheck = [null]; // null means broad availability mode
+    } else if (query.domain === "FIFA") {
+      sectionsToCheck = sectionString.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
+    } else {
+      sectionsToCheck = sectionString.split(/[\s,]+/).filter((s) => s.length > 0);
+    }
 
     // Check each section and merge results
     let mergedResult = {
@@ -128,6 +136,13 @@ export async function runQuery(queryId) {
           minSeats: query.minSeats || 1,
           maxPrice: query.maxPrice,
         });
+      } else if (query.domain === "FIFA") {
+        sectionResult = await fetchFIFA({
+          eventId: query.eventId,
+          section: section,
+          minSeats: query.minSeats || 1,
+          maxPrice: query.maxPrice,
+        });
       } else if (query.domain === "UK") {
         sectionResult = await fetchUK({
           eventId: query.eventId,
@@ -152,6 +167,16 @@ export async function runQuery(queryId) {
           };
         } else {
           mergedResult.success = true;
+        }
+
+        // Propagate eventName if returned by the fetcher (e.g. FIFA)
+        if (sectionResult.eventName && !mergedResult.eventName) {
+          mergedResult.eventName = sectionResult.eventName;
+        }
+
+        // Propagate eventDate if returned by the fetcher (e.g. FIFA)
+        if (sectionResult.eventDate && !mergedResult.eventDate) {
+          mergedResult.eventDate = sectionResult.eventDate;
         }
 
         // Track priceExceeded independently: if ANY section has price exceeded, mark it
@@ -263,6 +288,9 @@ export async function runQuery(queryId) {
         foundSection: foundSectionStr,
         lastErrorMessage: errorMessage,
         lastCheckedAt: new Date(),
+        // Populate eventName and eventDate from fetcher if not yet set (FIFA populates this from page HTML)
+        ...(result.eventName && !query.eventName && { eventName: result.eventName }),
+        ...(result.eventDate && !query.eventDate && { eventDate: result.eventDate }),
       },
     });
 
