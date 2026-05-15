@@ -9,6 +9,7 @@ import { fetchNL } from "../fetchers/fetch-nl.js";
 import { fetchPL } from "../fetchers/fetch-pl.js";
 import { fetchSE } from "../fetchers/fetch-se.js";
 import { fetchUK } from "../fetchers/fetch-uk.js";
+import { parseTicketmasterUrl } from "../utils/parseTicketmasterUrl.js";
 import {
   normalizePricesToEUR,
   calculateProfitLoss,
@@ -59,9 +60,14 @@ export async function runQuery(queryId) {
     if (!sectionString) {
       sectionsToCheck = [null]; // null means broad availability mode
     } else if (query.domain === "FIFA") {
-      sectionsToCheck = sectionString.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
+      sectionsToCheck = sectionString
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
     } else {
-      sectionsToCheck = sectionString.split(/[\s,]+/).filter((s) => s.length > 0);
+      sectionsToCheck = sectionString
+        .split(/[\s,]+/)
+        .filter((s) => s.length > 0);
     }
 
     // Check each section and merge results
@@ -137,11 +143,23 @@ export async function runQuery(queryId) {
           maxPrice: query.maxPrice,
         });
       } else if (query.domain === "FIFA") {
+        // Extract variant from the eventUrl
+        let variant = "shop"; // default
+        try {
+          const parsed = parseTicketmasterUrl(query.eventUrl);
+          if (parsed.variant) {
+            variant = parsed.variant;
+          }
+        } catch {
+          // If parsing fails, use default variant
+        }
+
         sectionResult = await fetchFIFA({
           eventId: query.eventId,
           section: section,
           minSeats: query.minSeats || 1,
           maxPrice: query.maxPrice,
+          variant: variant,
         });
       } else if (query.domain === "UK") {
         sectionResult = await fetchUK({
@@ -289,8 +307,10 @@ export async function runQuery(queryId) {
         lastErrorMessage: errorMessage,
         lastCheckedAt: new Date(),
         // Populate eventName and eventDate from fetcher if not yet set (FIFA populates this from page HTML)
-        ...(result.eventName && !query.eventName && { eventName: result.eventName }),
-        ...(result.eventDate && !query.eventDate && { eventDate: result.eventDate }),
+        ...(result.eventName &&
+          !query.eventName && { eventName: result.eventName }),
+        ...(result.eventDate &&
+          !query.eventDate && { eventDate: result.eventDate }),
       },
     });
 

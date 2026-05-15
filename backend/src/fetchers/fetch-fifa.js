@@ -7,25 +7,43 @@ const MAX_COOKIE_AGE_MS = 30 * 60 * 1000; // 30 dakika
 const metadataCache = new Map();
 
 /**
- * Reads cookies from fifa-cookies.json and returns them as a Cookie header string.
- * Throws if the file is missing or cookies are too old.
+ * Reads cookies from fifa-cookies.json for a specific variant (shop or resale).
+ * Returns them as a Cookie header string.
+ * Throws if the file is missing, variant doesn't exist, or cookies are too old.
+ *
+ * @param {string} variant - "shop" or "resale"
+ * @returns {Promise<string>} - Cookie header string (name=value; name=value; ...)
  */
-async function loadFifaCookies() {
+async function loadFifaCookies(variant = "shop") {
   let raw;
   try {
     raw = await readFile("fifa-cookies.json", "utf-8");
   } catch {
-    throw new Error("FIFA_COOKIE_MISSING: fifa-cookies.json dosyası bulunamadı. Lütfen puppeteer cookie harvester'ı çalıştırın.");
+    throw new Error(
+      "FIFA_COOKIE_MISSING: fifa-cookies.json dosyası bulunamadı. Lütfen puppeteer cookie harvester'ı çalıştırın.",
+    );
   }
 
-  const cookieMap = JSON.parse(raw);
-  const age = Date.now() - (cookieMap._harvestedAt || 0);
+  const allCookies = JSON.parse(raw);
+
+  // Variant'a göre cookies'i al (shop veya resale)
+  const variantCookies = allCookies[variant];
+  if (!variantCookies) {
+    throw new Error(
+      `FIFA_COOKIE_MISSING: "${variant}" variant'ı için çerez bulunamadı. fifa-cookies.json içinde ${Object.keys(allCookies).join(", ")} variant'ları var.`,
+    );
+  }
+
+  const age = Date.now() - (variantCookies._harvestedAt || 0);
 
   if (age > MAX_COOKIE_AGE_MS) {
-    throw new Error(`FIFA_COOKIE_EXPIRED: Çerezler ${Math.round(age / 60000)} dakika önce alınmış (max ${MAX_COOKIE_AGE_MS / 60000} dk). Tarayıcıyı kontrol edin.`);
+    throw new Error(
+      `FIFA_COOKIE_EXPIRED: ${variant} çerezleri ${Math.round(age / 60000)} dakika önce alınmış (max ${MAX_COOKIE_AGE_MS / 60000} dk). Tarayıcıyı kontrol edin.`,
+    );
   }
 
-  return Object.entries(cookieMap)
+  // Çerezleri "name=value; name=value; ..." formatına dönüştür
+  return Object.entries(variantCookies)
     .filter(([k]) => k !== "_harvestedAt")
     .map(([k, v]) => `${k}=${v}`)
     .join("; ");
@@ -34,10 +52,15 @@ async function loadFifaCookies() {
 /**
  * Common headers for FIFA requests, mimicking a real Chrome browser.
  */
-function buildHeaders(cookieString, perfId) {
+function buildHeaders(
+  cookieString,
+  perfId,
+  baseUrl = "https://fwc26-shop-usd.tickets.fifa.com",
+) {
   const referer = perfId
-    ? `https://fwc26-shop-usd.tickets.fifa.com/secure/selection/event/seat/performance/${perfId}/lang/en`
-    : "https://fwc26-shop-usd.tickets.fifa.com/";
+    ? `${baseUrl}/secure/selection/event/seat/performance/${perfId}/lang/en`
+    : `${baseUrl}/`;
+  const hostFromUrl = new URL(baseUrl).hostname;
   return {
     Cookie: cookieString,
     "User-Agent":
@@ -47,8 +70,8 @@ function buildHeaders(cookieString, perfId) {
     "Accept-Encoding": "gzip, deflate, br",
     "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8,tr;q=0.7",
     Referer: referer,
-    Origin: "https://fwc26-shop-usd.tickets.fifa.com",
-    "X-Secutix-Host": "fwc26-shop-usd.tickets.fifa.com",
+    Origin: baseUrl,
+    "X-Secutix-Host": hostFromUrl,
     "Sec-Ch-Ua":
       '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
     "Sec-Ch-Ua-Mobile": "?0",
@@ -76,7 +99,7 @@ async function fetchPageMetadata(perfId, cookieString, baseUrl) {
 
   const response = await gotScraping({
     url: pageUrl,
-    headers: buildHeaders(cookieString, perfId),
+    headers: buildHeaders(cookieString, perfId, baseUrl),
     headerGeneratorOptions: {
       browsers: [{ name: "chrome", minVersion: 148, maxVersion: 148 }],
       operatingSystems: ["macos"],
@@ -93,9 +116,7 @@ async function fetchPageMetadata(perfId, cookieString, baseUrl) {
   const body = response.body;
 
   // Extract productId from: product_description_header product_{id}
-  const productMatch = body.match(
-    /product_description_header\s+product_(\d+)/,
-  );
+  const productMatch = body.match(/product_description_header\s+product_(\d+)/);
   if (!productMatch) {
     throw new Error(
       "FIFA_PARSE_ERROR: productId sayfada bulunamadı. Oturum süresi dolmuş olabilir.",
@@ -167,13 +188,19 @@ async function fetchPageMetadata(perfId, cookieString, baseUrl) {
  * @param {number|null} opts.maxPrice - Max per-ticket price in cents (USD), null = no limit
  * @returns {Promise<object>}
  */
-export async function fetchFIFA({ eventId, section, minSeats = 1, maxPrice }) {
+export async function fetchFIFA({
+  eventId,
+  section,
+  minSeats = 1,
+  maxPrice,
+  variant = "shop",
+}) {
   const start = Date.now();
   const perfId = eventId;
 
   let cookieString;
   try {
-    cookieString = await loadFifaCookies();
+    cookieString = await loadFifaCookies(variant);
   } catch (err) {
     return {
       success: false,
@@ -186,8 +213,8 @@ export async function fetchFIFA({ eventId, section, minSeats = 1, maxPrice }) {
     };
   }
 
-  // Determine base URL from cookies or default to USD
-  const baseUrl = "https://fwc26-shop-usd.tickets.fifa.com";
+  // Determine base URL using the variant (shop or resale)
+  const baseUrl = `https://fwc26-${variant}-usd.tickets.fifa.com`;
 
   try {
     // Step 1: Get productId and metadata from the HTML page
@@ -207,7 +234,7 @@ export async function fetchFIFA({ eventId, section, minSeats = 1, maxPrice }) {
     const availResponse = await gotScraping({
       url: availUrl,
       headers: {
-        ...buildHeaders(cookieString, perfId),
+        ...buildHeaders(cookieString, perfId, baseUrl),
         Accept: "application/json, text/plain, */*",
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
@@ -263,11 +290,34 @@ export async function fetchFIFA({ eventId, section, minSeats = 1, maxPrice }) {
 
       // FIFA API returns prices in milli-units (1/1000 of currency unit)
       // e.g. 2735000 = $2,735.00 → convert to cents: 2735000 / 10 = 273500 cents
-      const priceCents = cat.minPrice != null ? Math.round(cat.minPrice / 10) : null;
+      const catId = cat.id.toString();
+      const seatPriceRanges =
+        data.seatMapPriceRanges?.seatPriceRangesBySeatCat?.[catId];
+
+      let priceCents = null;
+
+      if (variant === "resale") {
+        // Resale: must use seatPriceRanges with 15% tax
+        if (seatPriceRanges?.min != null) {
+          const basePrice = seatPriceRanges.min / 10;
+          priceCents = Math.round(basePrice * 1.15);
+        }
+      } else {
+        // Shop: use seatPriceRanges if available, otherwise use minPrice
+        if (seatPriceRanges?.min != null) {
+          priceCents = Math.round(seatPriceRanges.min / 10);
+        } else if (cat.minPrice != null) {
+          priceCents = Math.round(cat.minPrice / 10);
+        }
+      }
+
       if (priceCents == null) continue;
 
       // Track cheapest matching price
-      if (cheapestMatchingPrice === null || priceCents < cheapestMatchingPrice) {
+      if (
+        cheapestMatchingPrice === null ||
+        priceCents < cheapestMatchingPrice
+      ) {
         cheapestMatchingPrice = priceCents;
       }
 

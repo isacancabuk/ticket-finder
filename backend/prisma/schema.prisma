@@ -46,6 +46,7 @@ model Query {
   salePrice         Int?         // per-ticket sale price in cents
   salePriceCurrency String       @default("EUR")  // ISO 4217 code for salePrice
   orderNo           String       @default("")   // operational reference, not unique
+  saleSite          String?                     // optional: which resale platform (e.g. ViaGogo, StubHub)
   description       String?                     // optional free-text note / description
 
   isActive          Boolean      @default(true)

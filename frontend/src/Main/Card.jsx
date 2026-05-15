@@ -2,7 +2,18 @@ import { useState } from "react";
 import styles from "./Card.module.css";
 import "/node_modules/flag-icons/css/flag-icons.min.css";
 
-const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR", NL: "EUR", PL: "PLN", BE: "EUR", SE: "SEK", CH: "CHF", MX: "MXN", FIFA: "USD" };
+const DOMAIN_CURRENCY = {
+  DE: "EUR",
+  UK: "GBP",
+  ES: "EUR",
+  NL: "EUR",
+  PL: "PLN",
+  BE: "EUR",
+  SE: "SEK",
+  CH: "CHF",
+  MX: "MXN",
+  FIFA: "USD",
+};
 
 function formatPrice(cents, currencyCode) {
   if (cents == null) return "–";
@@ -38,6 +49,7 @@ export default function Card({ query, onClick }) {
     eventUrl,
     lastErrorMessage,
     orderNo,
+    saleSite,
     description,
     eventLocation,
     eventDate,
@@ -91,13 +103,15 @@ export default function Card({ query, onClick }) {
       if (profitLoss > 0) {
         profitLossLine = (
           <span className="text-green-600 font-bold">
-            , {formatPrice(profitLoss, profitLossCurrency)}{"\u00A0"}kâr
+            , {formatPrice(profitLoss, profitLossCurrency)}
+            {"\u00A0"}kâr
           </span>
         );
       } else if (profitLoss < 0) {
         profitLossLine = (
           <span className="text-red-500 font-bold">
-            , {formatPrice(Math.abs(profitLoss), profitLossCurrency)}{"\u00A0"}zarar
+            , {formatPrice(Math.abs(profitLoss), profitLossCurrency)}
+            {"\u00A0"}zarar
           </span>
         );
       } else {
@@ -136,13 +150,22 @@ export default function Card({ query, onClick }) {
         <img src={imgUrl} alt={site} />
         {description && (
           <p className={styles.description} title={description}>
-            <span style={{ color: "#555", fontWeight: "800" }}>NOT:</span> {description}
+            <span style={{ color: "#555", fontWeight: "800" }}>NOT:</span>{" "}
+            {description}
           </p>
         )}
       </div>
 
       <div className={styles.infoDiv}>
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center justify-center">
+          {saleSite && (
+            <p className={styles.saleSite}>
+              <span style={{ color: "#888", fontWeight: 600 }}>
+                Satış Sitesi:
+              </span>{" "}
+              {saleSite}
+            </p>
+          )}
           {orderNo && (
             <p
               className={styles.orderNo}
@@ -157,7 +180,7 @@ export default function Card({ query, onClick }) {
             </p>
           )}
           {isFifa ? (
-            <span className={styles.flag} style={{ fontSize: "1.6rem" }}>⚽</span>
+            <span className={styles.flag} style={{ fontSize: "1.6rem" }}></span>
           ) : (
             <span className={`fi fi-${countryCode} ${styles.flag}`}></span>
           )}
@@ -166,16 +189,30 @@ export default function Card({ query, onClick }) {
 
         <div className="flex flex-col items-center">
           {metaLine && <p className={styles.eventMeta}>{metaLine}</p>}
-          <p className="text-2xl font-bold text-center" style={{ textWrap: "balance", lineHeight: "1.2", marginBottom: "4px" }}>{eventName || "Unknown Event"}</p>
+          <p
+            className="text-2xl font-bold text-center"
+            style={{
+              textWrap: "balance",
+              lineHeight: "1.2",
+              marginBottom: "4px",
+            }}
+          >
+            {eventName || "Unknown Event"}
+          </p>
           <p className="text-lg text-gray-500 font-bold">
             Section: {section || "Tümü"}
             {minSeats && minSeats > 1 ? ` x ${minSeats}` : ""}
           </p>
-          {query.foundSection && (displayStatus === "found" || displayStatus === "purchased" || displayStatus === "price_exceeded") && (
-            <p className={`text-md font-bold ${displayStatus === "price_exceeded" ? "text-orange-500" : "text-green-600"}`}>
-              Bulunan: {query.foundSection}
-            </p>
-          )}
+          {query.foundSection &&
+            (displayStatus === "found" ||
+              displayStatus === "purchased" ||
+              displayStatus === "price_exceeded") && (
+              <p
+                className={`text-md font-bold ${displayStatus === "price_exceeded" ? "text-orange-500" : "text-green-600"}`}
+              >
+                Bulunan: {query.foundSection}
+              </p>
+            )}
         </div>
 
         <div className="flex flex-col items-center gap-1">
@@ -183,7 +220,10 @@ export default function Card({ query, onClick }) {
             <p className="text-sm font-bold text-gray-700">
               {salePrice != null ? (
                 <>
-                  <span className="whitespace-nowrap">{formatPrice(salePrice, saleCurrency)}{"\u00A0"}satış{"\u00A0"}fiyatı</span>
+                  <span className="whitespace-nowrap">
+                    {formatPrice(salePrice, saleCurrency)}
+                    {"\u00A0"}satış{"\u00A0"}fiyatı
+                  </span>
                   {salePriceInEUR != null && salePriceCurrency !== "EUR" && (
                     <span className="text-xs text-gray-500 block sm:inline">
                       {" "}
@@ -199,22 +239,37 @@ export default function Card({ query, onClick }) {
           <p className={`font-bold text-2xl ${styles.statusText}`}>
             {statusLabel}
           </p>
-          <p className={`${styles.priceInfo} text-center`} style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "2px 4px" }}>
+          <p
+            className={`${styles.priceInfo} text-center`}
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: "2px 4px",
+            }}
+          >
             {(displayStatus === "found" ||
               displayStatus === "price_exceeded" ||
               displayStatus === "purchased") &&
             foundPrice != null ? (
               foundPrice === -1 ? (
-                <span className="whitespace-nowrap font-bold text-gray-500">Fiyat bilgisi yok (Bilet bulundu)</span>
+                <span className="whitespace-nowrap font-bold text-gray-500">
+                  Fiyat bilgisi yok (Bilet bulundu)
+                </span>
               ) : (
                 <>
-                  <span className="whitespace-nowrap">{formatPrice(foundPrice, foundCurrency)}{"\u00A0"}bulundu</span>
+                  <span className="whitespace-nowrap">
+                    {formatPrice(foundPrice, foundCurrency)}
+                    {"\u00A0"}bulundu
+                  </span>
                   {foundPriceInEUR != null && foundCurrency !== "EUR" && (
                     <span className="text-xs text-gray-500 whitespace-nowrap">
                       ({formatPrice(foundPriceInEUR, "EUR")})
                     </span>
                   )}
-                  {profitLossLine && <span className="whitespace-nowrap">{profitLossLine}</span>}
+                  {profitLossLine && (
+                    <span className="whitespace-nowrap">{profitLossLine}</span>
+                  )}
                 </>
               )
             ) : (

@@ -39,7 +39,11 @@ router.get("/manifest-sections", async (req, res) => {
       return res.status(400).json({ error: err.message });
     }
 
-    if (!(["DE","ES","UK","NL","PL","BE","SE","CH","MX","FIFA"].includes(parsed.domain))) {
+    if (
+      !["DE", "ES", "UK", "NL", "PL", "BE", "SE", "CH", "MX", "FIFA"].includes(
+        parsed.domain,
+      )
+    ) {
       return res.status(400).json({
         error: `Manifest bölümleri yardımcısı yalnızca DE, ES, UK, NL, PL, BE, SE, CH, MX ve FIFA etki alanları için desteklenir, alınan: ${parsed.domain}`,
       });
@@ -92,6 +96,7 @@ router.get("/manifest-sections", async (req, res) => {
     } else if (parsed.domain === "FIFA") {
       result = await fetchFIFAManifestSections({
         eventId: parsed.eventId,
+        variant: parsed.variant || "shop",
       });
     }
 
@@ -145,6 +150,7 @@ router.post("/", async (req, res) => {
       salePrice,
       salePriceCurrency,
       orderNo,
+      saleSite,
       description,
     } = req.body;
 
@@ -160,11 +166,9 @@ router.post("/", async (req, res) => {
     // Validate minSeats if provided
     const seats = minSeats ? parseInt(minSeats, 10) : 1;
     if (isNaN(seats) || seats < 1) {
-      return res
-        .status(400)
-        .json({
-          error: "Minimum koltuk sayısı pozitif bir tam sayı olmalıdır",
-        });
+      return res.status(400).json({
+        error: "Minimum koltuk sayısı pozitif bir tam sayı olmalıdır",
+      });
     }
 
     // Validate maxPrice (input is in EUR, stored as cents, null = no limit)
@@ -231,6 +235,7 @@ router.post("/", async (req, res) => {
           salePrice: salePriceCents,
           salePriceCurrency: saleCurrency,
           orderNo,
+          saleSite: saleSite?.trim() || null,
           description: description?.trim() || null,
           eventLocation: metadata.eventLocation,
           eventDate: metadata.eventDate,
@@ -311,7 +316,7 @@ router.patch("/:id/purchase", async (req, res) => {
 
     const updateData = { status: "PURCHASED" };
 
-    // Eğer bilet satın alınırken sistem koltukları kilitlediği için scraper "FINDING" durumuna 
+    // Eğer bilet satın alınırken sistem koltukları kilitlediği için scraper "FINDING" durumuna
     // düştüyse ve foundPrice kaybolduysa, kâr hesaplayabilmek için son başarılı logdan fiyatı kurtaralım
     if (currentQuery.foundPrice == null) {
       const lastFoundLog = await prisma.checkResult.findFirst({
@@ -356,6 +361,7 @@ router.patch("/:id", async (req, res) => {
       salePrice,
       salePriceCurrency,
       orderNo,
+      saleSite,
       description,
     } = req.body;
 
@@ -432,6 +438,11 @@ router.patch("/:id", async (req, res) => {
     // ── Accept salePriceCurrency as-is (no validation needed) ────
     if (salePriceCurrency !== undefined) {
       updateData.salePriceCurrency = salePriceCurrency?.toUpperCase() || "EUR";
+    }
+
+    // ── Accept saleSite (optional resale platform, nullable) ────
+    if (saleSite !== undefined) {
+      updateData.saleSite = saleSite?.trim() || null;
     }
 
     // ── Accept description (free-text, nullable) ────

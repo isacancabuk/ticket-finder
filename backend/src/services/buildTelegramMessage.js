@@ -61,6 +61,10 @@ export function buildTelegramMessage(query) {
 
   let lines = [`🎟️ BİLET BULUNDU!`, ``, `📋 Sipariş: ${orderNo}`];
 
+  if (query.saleSite) {
+    lines.push(`🏪 Satış Sitesi: ${query.saleSite}`);
+  }
+
   if (query.description) {
     lines.push(`📝 Not: ${query.description}`);
   }

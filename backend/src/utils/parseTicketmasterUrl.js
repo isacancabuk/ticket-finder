@@ -18,10 +18,13 @@ export function parseTicketmasterUrl(url) {
   const hostname = parsed.hostname.replace(/^www\./, "");
 
   // ── FIFA URL handling ──────────────────────────────────────
-  // Pattern: fwc26-shop-{currency}.tickets.fifa.com/secure/selection/event/seat/performance/{perfId}/lang/en
-  const fifaMatch = hostname.match(/^fwc26-shop-(\w+)\.tickets\.fifa\.com$/);
+  // Pattern: fwc26-{shop|resale}-{currency}.tickets.fifa.com/secure/selection/event/seat/performance/{perfId}/lang/en
+  const fifaMatch = hostname.match(
+    /^fwc26-(shop|resale)-(\w+)\.tickets\.fifa\.com$/,
+  );
   if (fifaMatch) {
-    const currency = fifaMatch[1].toUpperCase(); // e.g. "USD", "EUR"
+    const variant = fifaMatch[1]; // "shop" or "resale"
+    const currency = fifaMatch[2].toUpperCase(); // e.g. "USD", "EUR"
     const segments = parsed.pathname.split("/").filter(Boolean);
 
     // Find perfId: it's the segment after "performance"
@@ -40,7 +43,9 @@ export function parseTicketmasterUrl(url) {
     }
 
     if (!eventId || !/^\d+$/.test(eventId)) {
-      throw new Error(`FIFA URL must contain a numeric performance or product ID, got: "${eventId}"`);
+      throw new Error(
+        `FIFA URL must contain a numeric performance or product ID, got: "${eventId}"`,
+      );
     }
 
     return {
@@ -51,6 +56,7 @@ export function parseTicketmasterUrl(url) {
       eventName: null,
       eventUrl: url,
       currency, // extra field for FIFA
+      variant, // "shop" or "resale"
     };
   }
 
@@ -70,7 +76,7 @@ export function parseTicketmasterUrl(url) {
   const domain = domainMap[hostname];
   if (!domain) {
     throw new Error(
-      `Unsupported domain: ${hostname}. Supported: Ticketmaster (${Object.keys(domainMap).join(", ")}), FIFA (fwc26-shop-*.tickets.fifa.com)`
+      `Unsupported domain: ${hostname}. Supported: Ticketmaster (${Object.keys(domainMap).join(", ")}), FIFA (fwc26-shop-*.tickets.fifa.com)`,
     );
   }
 
@@ -86,7 +92,9 @@ export function parseTicketmasterUrl(url) {
   const eventId = segments[segments.length - 1];
   if (domain === "UK" || domain === "MX") {
     if (!/^[A-Za-z0-9]+$/.test(eventId)) {
-      throw new Error(`${domain} Event ID must be alphanumeric, got: "${eventId}"`);
+      throw new Error(
+        `${domain} Event ID must be alphanumeric, got: "${eventId}"`,
+      );
     }
   } else {
     if (!/^\d+$/.test(eventId)) {

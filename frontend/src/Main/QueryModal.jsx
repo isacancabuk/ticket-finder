@@ -6,6 +6,7 @@ import styles from "./QueryModal.module.css";
 
 const DOMAIN_CURRENCY = { DE: "EUR", UK: "GBP", ES: "EUR", NL: "EUR", PL: "PLN", BE: "EUR", SE: "SEK", CH: "CHF", MX: "MXN", FIFA: "USD" };
 const CURRENCY_OPTIONS = [{ code: "EUR" }, { code: "GBP" }, { code: "USD" }, { code: "MXN" }];
+const SALE_SITES = ["ViaGogo", "TixStock", "Vivid", "Gigsberg", "StubHub", "Ticombo"];
 
 function formatPrice(cents, currencyCode) {
   if (cents == null) return "–";
@@ -126,6 +127,21 @@ export default function QueryModal({ query, onClose }) {
                 />
               </div>
               <div className={styles.editField}>
+                <label className={styles.editLabel}>Satış Sitesi</label>
+                <select
+                  name="saleSite"
+                  defaultValue={query.saleSite || ""}
+                  className={styles.editInput}
+                >
+                  <option value="">Seçilmedi</option>
+                  {SALE_SITES.map((site) => (
+                    <option key={site} value={site}>
+                      {site}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.editField}>
                 <label className={styles.editLabel}>Order Number</label>
                 <input
                   type="text"
@@ -209,6 +225,12 @@ export default function QueryModal({ query, onClose }) {
               <div className={styles.infoItem} style={{ gridColumn: '1 / -1' }}>
                 <span className={styles.infoLabel}>Açıklama</span>
                 <span className={styles.infoValue}>{query.description}</span>
+              </div>
+            )}
+            {query.saleSite && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Satış Sitesi</span>
+                <span className={styles.infoValue}>{query.saleSite}</span>
               </div>
             )}
             <div className={styles.infoItem}>

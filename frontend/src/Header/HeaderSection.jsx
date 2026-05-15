@@ -7,6 +7,7 @@ import { apiFetch } from "../api";
 import styles from "./HeaderSection.module.css";
 
 const CURRENCY_OPTIONS = ["EUR", "GBP", "USD"];
+const SALE_SITES = ["ViaGogo", "TixStock", "Vivid", "Gigsberg", "StubHub", "Ticombo"];
 
 export default function HeaderSection() {
   const actionData = useActionData();
@@ -123,14 +124,29 @@ export default function HeaderSection() {
       >
         <input type="hidden" name="_action" value="create" />
 
-        {/* Row 0: Description (full width) */}
-        <div className="col-span-5">
+        {/* Row 0: Description (4 cols) + Sale Site (1 col) */}
+        <div className="col-span-4">
           <Input
             type="text"
             name="description"
             placeholder="Açıklama / Not"
             required={false}
           />
+        </div>
+
+        <div className="col-span-1">
+          <select
+            name="saleSite"
+            defaultValue=""
+            className={styles.saleSiteSelect}
+          >
+            <option value="">Satış Sitesi</option>
+            {SALE_SITES.map((site) => (
+              <option key={site} value={site}>
+                {site}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Row 1: Order No. | Event URL (3 cols) | Bölümler helper */}

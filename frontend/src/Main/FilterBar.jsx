@@ -161,7 +161,7 @@ export default function FilterBar({ filterState, onFilterChange, statusCounts = 
                     setOpenDropdown(null);
                   }}
                 >
-                  {site === "Tümü" ? "Tümü" : "ticketmaster"}
+                  {site === "Tümü" ? "Tümü" : site === "ticketmaster" ? "Ticketmaster" : "FIFA"}
                 </button>
               ))}
             </div>

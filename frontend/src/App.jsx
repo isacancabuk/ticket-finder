@@ -23,6 +23,7 @@ async function rootAction({ request }) {
       salePrice: formData.get("salePrice") || "",
       salePriceCurrency: formData.get("salePriceCurrency") || "EUR",
       orderNo: formData.get("orderNo"),
+      saleSite: formData.get("saleSite") || "",
       description: formData.get("description") || "",
     };
 
@@ -73,6 +74,7 @@ async function rootAction({ request }) {
       salePrice: formData.get("salePrice"),
       salePriceCurrency: formData.get("salePriceCurrency"),
       orderNo: formData.get("orderNo"),
+      saleSite: formData.get("saleSite"),
       description: formData.get("description"),
     };
 
