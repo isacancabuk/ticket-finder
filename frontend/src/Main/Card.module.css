@@ -46,7 +46,6 @@
 .imgDiv {
     position: relative;
     width: 100%;
-    height: 80px;
     display: flex;
     justify-content: center;
     padding: 12px;
