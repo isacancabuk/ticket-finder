@@ -200,6 +200,24 @@ export default function QueryModal({ query, onClose }) {
                   </select>
                 </div>
               </div>
+              <div className={styles.editField}>
+                <label className={styles.editLabel}>GOGO Fiyatı</label>
+                <input
+                  type="number"
+                  name="gogoPrice"
+                  defaultValue={query.gogoPrice ? query.gogoPrice / 100 : ""}
+                  className={styles.editInput}
+                />
+              </div>
+              <div className={styles.editField}>
+                <label className={styles.editLabel}>Tix Fiyatı</label>
+                <input
+                  type="number"
+                  name="tixPrice"
+                  defaultValue={query.tixPrice ? query.tixPrice / 100 : ""}
+                  className={styles.editInput}
+                />
+              </div>
             </div>
 
             <div className={styles.editActions}>
@@ -270,6 +288,22 @@ export default function QueryModal({ query, onClose }) {
                   )}
               </span>
             </div>
+            {query.gogoPrice != null && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>GOGO Fiyatı</span>
+                <span className={styles.infoValue}>
+                  {formatPrice(query.gogoPrice, "EUR")}
+                </span>
+              </div>
+            )}
+            {query.tixPrice != null && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Tix Fiyatı</span>
+                <span className={styles.infoValue}>
+                  {formatPrice(query.tixPrice, "EUR")}
+                </span>
+              </div>
+            )}
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Durum</span>
               <span className={styles.infoValue} data-status={displayStatus}>
@@ -478,12 +512,9 @@ export default function QueryModal({ query, onClose }) {
                   </thead>
                   <tbody>
                     {logs.map((log) => {
-                      let rowStatus = log.status;
-                      let rowClass = "";
-                      if (log.priceExceeded) {
-                        rowStatus = "Fiyat Aşıldı";
-                        rowClass = styles.logRowPriceExceeded;
-                      }
+                      const logDisplayStatus = getDisplayStatus(log);
+                      const rowStatus = STATUS_LABELS[logDisplayStatus] || logDisplayStatus;
+                      const rowClass = logDisplayStatus === "price_exceeded" ? styles.logRowPriceExceeded : "";
 
                       return (
                         <tr key={log.id} className={rowClass}>

@@ -23,7 +23,10 @@ The backend is a Node.js Express server structured around Prisma ORM.
 - `prisma/schema.prisma` - The central database schema file. Defines the `Query` and `CheckResult` models, including fields like `description`, as well as enums like `QueryStatus`. **Migrations/Schema state live here.** (Note: `@@unique` constraints have been recently dropped to allow multiple identical queries).
 
 ### API Routes (`/backend/src/routes`)
-- `query.routes.js` - Defines all REST endpoints (`GET /`, `POST /`, `PATCH /:id`, `DELETE /:id`, `PATCH /:id/stop`, etc.). Handles request validation, HTTP responses, parsing of URLs for domain/site, database interactions, and logs filtering logic (`GET /:id/logs`). It also provides the `/queries/manifest-sections` endpoint for the frontend section picker.
+- `query.routes.js` - Defines all REST endpoints (`GET /`, `POST /`, `PATCH /:id`, `DELETE /:id`, `PATCH /:id/stop`, etc.). Handles request validation, HTTP responses, parsing of URLs for domain/site, parsing `salesSite`, database interactions, and logs filtering logic (`GET /:id/logs`). It uses manifest utilities to provide the `/queries/manifest-sections` endpoint.
+
+### Manifests (`/backend/src/manifests`)
+- Contains dedicated scripts and utilities for extracting section and seating manifest data across different Ticketmaster regions.
 
 ### Services (`/backend/src/services`)
 Centralized business logic for processing queries.
@@ -36,13 +39,14 @@ Centralized business logic for processing queries.
 - `buildTelegramMessage.js` - Formats the payload text/markdown sent to Telegram. Fully localized in Turkish, includes asynchronous cross-currency FX calculated profit/loss, found section, multi-seat pricing breakdown, and any user `description`.
 
 ### Scheduler (`/backend/src/scheduler`)
-- `startScheduler.js` - The check loop implementation. Uses `setInterval` to run sequentially. Calls `getNextQueryToRun()`, `runQuery()`, and notification services sequentially.
+- `startScheduler.js` - The check loop implementation. Uses `setInterval` to run sequentially. Calls `getNextQueryToRun()`, `runQuery()`, and notification services sequentially. The developer can now use an interactive CLI selection process (`start.js`) to choose which scheduler(s) to run in specific terminal instances to avoid log clutter.
 
-### Scraping / Verification (`/backend`)
-These scripts perform the actual external API requests.
-- `fetch-de.js` - Scraper for Ticketmaster Germany (`TM_DE`). Handles parsing Ticketmaster API JSON, parsing sections/seats, matching prices, and returning actionable data (`isAvailable`, `priceExceeded`, `foundPrice`, `foundSections`).
-- `fetch-es.js` - Scraper for Ticketmaster Spain (`TM_ES`). Mirrors the DE scraper but points to the Spanish domain endpoints.
-- `fetch-uk.js` - Scraper for Ticketmaster UK (`TM_UK`). Uses the quickpicks API (`/api/quickpicks/{eventId}/list`), matches sections via `pick.section`, extracts per-ticket price from `originalPrice`, converts GBP floats to cents. Fully integrated into `runQuery.js`.
+### Scraping / Verification (`/backend/src/fetchers`)
+These scripts perform the actual external API requests and have been moved to their own directory.
+- `fetch-de.js`, `fetch-es.js`, `fetch-nl.js`, `fetch-be.js`, `fetch-se.js`, `fetch-ch.js`, `fetch-pl.js` - Scrapers for European Ticketmaster domains. Handle parsing Ticketmaster API JSON, sections/seats, matching prices, and returning actionable data.
+- `fetch-uk.js` - Scraper for Ticketmaster UK (`TM_UK`) utilizing the quickpicks API.
+- `fetch-mx.js` - Scraper for Ticketmaster Mexico (`TM_MX`), supporting alphanumeric event IDs.
+- `fetch-fifa.js` - Specialized scraper for FIFA tickets, implementing a resilient architecture with intelligent request throttling, 15-second intervals, and dynamic cookie refresh to bypass DataDome 403 Forbidden errors.
 
 ### Utilities (`/backend/src/utils`)
 - `fetchEventMetadata.js` - Extracts event date/location from Ticketmaster LD+JSON metadata when a URL is first submitted.

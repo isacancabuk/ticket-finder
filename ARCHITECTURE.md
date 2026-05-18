@@ -14,7 +14,7 @@ A `Query` represents a user's intent to watch a specific event for matching tick
 
 1. **Creation:** User pastes a Ticketmaster URL + optional section + optional price constraints. 
    - Initial status is `FINDING`. Total statuses: `FINDING`, `FOUND`, `STOPPED`, `PURCHASED`, `ERROR`.
-   - The backend uses `parseTicketmasterUrl.js` to parse the domain, event ID, and the explicit `site` value (e.g. `TICKETMASTER`) which is then saved to the DB.
+   - The backend uses `parseTicketmasterUrl.js` to parse the domain, event ID, and the explicit `site` value (e.g. `TICKETMASTER`). It also accepts an optional `salesSite` target, which is saved to the DB.
 2. **Checking Loop:** The `Query` waits in the Prisma DB. The `startScheduler` interval picks it up via `getNextQueryToRun`. It calls `runQuery()`.
 3. **Check Evaluated:** Status updates to `FINDING` to mark activity, the scraper runs, and the result determines the final status:
    - Match found inside `maxPrice` (or no `maxPrice` limit): `FOUND`, `isAvailable=true`, `priceExceeded=false`.
@@ -35,16 +35,16 @@ It is critical to distinguish between the different price variables in the syste
 
 ## Scheduler Behavior
 
-- Runs centrally inside `src/scheduler/startScheduler.js`.
+- Runs centrally inside `src/scheduler/startScheduler.js` and can be initialized via an interactive CLI selection process (`start.js`) allowing developers to choose which scraper/scheduler instance to run to prevent log clutter.
 - An asynchronous `setInterval` ticks sequentially. It avoids overlaps with an `isRunning` lock.
 - Uses `getNextQueryToRun.js` enforcing a round-robin style single-thread queue across all active queries.
 
-## Scraper Execution (`fetchDE` / `fetchES` / `fetchUK`)
+## Scraper Execution (`fetchers/fetch-*`)
 
 - Matches Sections: If `section` is null or empty, it operates in "Broad Availability Mode" matching *any* active section.
 - Multiple Sections: If `section` contains multiple codes (separated by spaces or commas), it iterates through them to check.
 - Seat Validations: Decoupled from strict offer IDs where appropriate, checking if minimum seat groups are met.
-- Returns `isAvailable`, `foundPrice`, `priceExceeded`, and an array of `foundSections` which `runQuery.js` joins into a string.
+- Returns `isAvailable`, `foundPrice` (or a special `-1` flag for queued/unavailable prices to prevent discarding valid queue access), `priceExceeded`, and an array of `foundSections` which `runQuery.js` joins into a string.
 
 ## The Status System (Backend vs Frontend)
 

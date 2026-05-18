@@ -96,7 +96,7 @@ router.get("/manifest-sections", async (req, res) => {
     } else if (parsed.domain === "FIFA") {
       result = await fetchFIFAManifestSections({
         eventId: parsed.eventId,
-        variant: parsed.variant || "shop",
+        variant: parsed.variant || "resale",
       });
     }
 
@@ -149,6 +149,8 @@ router.post("/", async (req, res) => {
       maxPrice,
       salePrice,
       salePriceCurrency,
+      gogoPrice,
+      tixPrice,
       orderNo,
       saleSite,
       description,
@@ -196,6 +198,30 @@ router.post("/", async (req, res) => {
       salePriceCents = price * 100;
     }
 
+    // Validate gogoPrice (optional, stored as cents)
+    let gogoPriceCents = null;
+    if (gogoPrice) {
+      const price = parseInt(gogoPrice, 10);
+      if (isNaN(price) || price < 1) {
+        return res
+          .status(400)
+          .json({ error: "GOGO fiyatı pozitif bir tam sayı olmalıdır" });
+      }
+      gogoPriceCents = price * 100;
+    }
+
+    // Validate tixPrice (optional, stored as cents)
+    let tixPriceCents = null;
+    if (tixPrice) {
+      const price = parseInt(tixPrice, 10);
+      if (isNaN(price) || price < 1) {
+        return res
+          .status(400)
+          .json({ error: "Tix fiyatı pozitif bir tam sayı olmalıdır" });
+      }
+      tixPriceCents = price * 100;
+    }
+
     // Validate salePriceCurrency (default EUR)
     const saleCurrency = salePriceCurrency?.toUpperCase() || "EUR";
     if (!SUPPORTED_SALE_CURRENCIES.includes(saleCurrency)) {
@@ -234,6 +260,8 @@ router.post("/", async (req, res) => {
           maxPrice: maxPriceCents,
           salePrice: salePriceCents,
           salePriceCurrency: saleCurrency,
+          gogoPrice: gogoPriceCents,
+          tixPrice: tixPriceCents,
           orderNo,
           saleSite: saleSite?.trim() || null,
           description: description?.trim() || null,
@@ -360,6 +388,8 @@ router.patch("/:id", async (req, res) => {
       maxPrice,
       salePrice,
       salePriceCurrency,
+      gogoPrice,
+      tixPrice,
       orderNo,
       saleSite,
       description,
@@ -432,6 +462,36 @@ router.patch("/:id", async (req, res) => {
           });
         }
         updateData.salePrice = parsedSale * 100;
+      }
+    }
+
+    // ── Validate gogoPrice ────
+    if (gogoPrice !== undefined) {
+      if (gogoPrice === null || gogoPrice === "") {
+        updateData.gogoPrice = null;
+      } else {
+        const parsedGogo = parseInt(gogoPrice, 10);
+        if (isNaN(parsedGogo) || parsedGogo < 1) {
+          return res.status(400).json({
+            error: "GOGO Fiyatı 1'den büyük veya eşit olmalıdır",
+          });
+        }
+        updateData.gogoPrice = parsedGogo * 100;
+      }
+    }
+
+    // ── Validate tixPrice ────
+    if (tixPrice !== undefined) {
+      if (tixPrice === null || tixPrice === "") {
+        updateData.tixPrice = null;
+      } else {
+        const parsedTix = parseInt(tixPrice, 10);
+        if (isNaN(parsedTix) || parsedTix < 1) {
+          return res.status(400).json({
+            error: "Tix Fiyatı 1'den büyük veya eşit olmalıdır",
+          });
+        }
+        updateData.tixPrice = parsedTix * 100;
       }
     }
 

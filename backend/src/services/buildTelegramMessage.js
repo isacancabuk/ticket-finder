@@ -98,6 +98,16 @@ export function buildTelegramMessage(query) {
     }
   }
 
+  if (query.gogoPrice != null || query.tixPrice != null) {
+    lines.push(``);
+    if (query.gogoPrice != null) {
+      lines.push(`🟣 GOGO Fiyatı: ${formatPriceByCurrency(query.gogoPrice, "EUR")}`);
+    }
+    if (query.tixPrice != null) {
+      lines.push(`🟣 Tix Fiyatı: ${formatPriceByCurrency(query.tixPrice, "EUR")}`);
+    }
+  }
+
   lines.push(``);
   lines.push(`🌍 Domain: ${domain}`);
   lines.push(`🔗 Link: ${eventUrl}`);

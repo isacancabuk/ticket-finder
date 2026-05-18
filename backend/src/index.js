@@ -16,7 +16,11 @@ const app = express();
 const corsOptions = {
   origin: ["http://localhost:5173", "https://ticket-finder-alpha.vercel.app"],
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "ngrok-skip-browser-warning", "Bypass-Tunnel-Reminder"],
+  allowedHeaders: [
+    "Content-Type",
+    "ngrok-skip-browser-warning",
+    "Bypass-Tunnel-Reminder",
+  ],
 };
 
 app.use(cors(corsOptions));
@@ -48,7 +52,7 @@ if (mode === "all" || mode === "mx") {
   startScheduler("mx", getNextMXQueryToRun, 30 * 1000);
 }
 if (mode === "all" || mode === "fifa") {
-  startScheduler("fifa", getNextFIFAQueryToRun, 60 * 1000);
+  startScheduler("fifa", getNextFIFAQueryToRun, 30 * 1000);
 }
 if (mode === "fifa_cookie") {
   console.log("FIFA Cookie Harvester (Puppeteer) çalıştırılıyor...");

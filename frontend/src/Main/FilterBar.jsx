@@ -3,6 +3,7 @@ import styles from "./FilterBar.module.css";
 
 const COUNTRIES = ["Tümü", "BE", "CH", "DE", "ES", "FIFA", "MX", "NL", "PL", "SE", "UK"];
 const SITES = ["Tümü", "ticketmaster", "fifa"];
+const SALE_SITES = ["Tümü", "ViaGogo", "TixStock", "Vivid", "Gigsberg", "StubHub", "Ticombo", "Belirtilmemiş"];
 const STATUSES = [
   { label: "Tümü", value: "ALL" },
   { label: "Bulundu", value: "FOUND" },
@@ -31,6 +32,7 @@ export default function FilterBar({ filterState, onFilterChange, statusCounts = 
     searchQuery,
     selectedCountry,
     selectedSite,
+    selectedSaleSite,
     sortDateAsc,
     selectedStatus,
     sortByProfit,
@@ -40,13 +42,14 @@ export default function FilterBar({ filterState, onFilterChange, statusCounts = 
   const [openDropdown, setOpenDropdown] = useState(null);
   const countryRef = useRef(null);
   const siteRef = useRef(null);
+  const saleSiteRef = useRef(null);
   const statusRef = useRef(null);
   const profitRef = useRef(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
-      const allRefs = [countryRef, siteRef, statusRef, profitRef];
+      const allRefs = [countryRef, siteRef, saleSiteRef, statusRef, profitRef];
       const clickedOutside = allRefs.every(
         (ref) => ref.current && !ref.current.contains(e.target),
       );
@@ -68,6 +71,10 @@ export default function FilterBar({ filterState, onFilterChange, statusCounts = 
     setOpenDropdown(openDropdown === "site" ? null : "site");
   };
 
+  const handleSaleSiteToggle = () => {
+    setOpenDropdown(openDropdown === "saleSite" ? null : "saleSite");
+  };
+
   const handleStatusToggle = () => {
     setOpenDropdown(openDropdown === "status" ? null : "status");
   };
@@ -85,6 +92,7 @@ export default function FilterBar({ filterState, onFilterChange, statusCounts = 
       searchQuery: "",
       selectedCountry: "Tümü",
       selectedSite: "Tümü",
+      selectedSaleSite: "Tümü",
       sortDateAsc: false,
       selectedStatus: "ALL",
       sortByProfit: "HIGH",
@@ -162,6 +170,33 @@ export default function FilterBar({ filterState, onFilterChange, statusCounts = 
                   }}
                 >
                   {site === "Tümü" ? "Tümü" : site === "ticketmaster" ? "Ticketmaster" : "FIFA"}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Sale Site Filter */}
+        <div ref={saleSiteRef} className={styles.filterGroup}>
+          <div className={styles.filterLabel}>Satış Sitesi</div>
+          <button className={styles.filterButton} onClick={handleSaleSiteToggle}>
+            {selectedSaleSite}
+            <span className={styles.dropdownIcon}>▼</span>
+          </button>
+          {openDropdown === "saleSite" && (
+            <div className={styles.dropdown}>
+              {SALE_SITES.map((site) => (
+                <button
+                  key={site}
+                  className={`${styles.dropdownItem} ${
+                    selectedSaleSite === site ? styles.active : ""
+                  }`}
+                  onClick={() => {
+                    handleChange({ selectedSaleSite: site });
+                    setOpenDropdown(null);
+                  }}
+                >
+                  {site}
                 </button>
               ))}
             </div>

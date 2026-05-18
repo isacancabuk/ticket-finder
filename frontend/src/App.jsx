@@ -25,6 +25,8 @@ async function rootAction({ request }) {
       orderNo: formData.get("orderNo"),
       saleSite: formData.get("saleSite") || "",
       description: formData.get("description") || "",
+      gogoPrice: formData.get("gogoPrice") || "",
+      tixPrice: formData.get("tixPrice") || "",
     };
 
     const res = await apiFetch("/queries", {
@@ -76,6 +78,8 @@ async function rootAction({ request }) {
       orderNo: formData.get("orderNo"),
       saleSite: formData.get("saleSite"),
       description: formData.get("description"),
+      gogoPrice: formData.get("gogoPrice"),
+      tixPrice: formData.get("tixPrice"),
     };
 
     const res = await apiFetch(`/queries/${id}`, {

@@ -60,10 +60,25 @@ export async function runQuery(queryId) {
     if (!sectionString) {
       sectionsToCheck = [null]; // null means broad availability mode
     } else if (query.domain === "FIFA") {
-      sectionsToCheck = sectionString
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
+      // FIFA categories contain spaces (e.g. "Category 1"), so we can't split on spaces naively.
+      // Handle both comma-separated ("Category 1,Category 2") and
+      // space-separated from section picker ("CATEGORY 1 CATEGORY 2 CATEGORY 3")
+      if (sectionString.includes(",")) {
+        sectionsToCheck = sectionString
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
+      } else {
+        // Try to detect "Category N" patterns
+        const categoryPattern = /category\s+\S+/gi;
+        const matches = sectionString.match(categoryPattern);
+        if (matches && matches.length > 0) {
+          sectionsToCheck = matches.map((m) => m.trim());
+        } else {
+          // Fallback: treat as single section
+          sectionsToCheck = [sectionString];
+        }
+      }
     } else {
       sectionsToCheck = sectionString
         .split(/[\s,]+/)
@@ -143,24 +158,97 @@ export async function runQuery(queryId) {
           maxPrice: query.maxPrice,
         });
       } else if (query.domain === "FIFA") {
-        // Extract variant from the eventUrl
-        let variant = "shop"; // default
+        // FIFA is resale-only — extract variant and enforce
+        let variant = "resale"; // default resale-only
         try {
           const parsed = parseTicketmasterUrl(query.eventUrl);
           if (parsed.variant) {
             variant = parsed.variant;
           }
         } catch {
-          // If parsing fails, use default variant
+          // If parsing fails, use default resale variant
         }
 
-        sectionResult = await fetchFIFA({
-          eventId: query.eventId,
-          section: section,
-          minSeats: query.minSeats || 1,
-          maxPrice: query.maxPrice,
-          variant: variant,
-        });
+        // Fail explicitly if variant is not resale
+        if (variant !== "resale") {
+          console.error(
+            `[runQuery] FIFA query ${queryId} has non-resale variant "${variant}" — failing explicitly`,
+          );
+          sectionResult = {
+            success: false,
+            errorMessage: `FIFA_VARIANT_ERROR: Only resale variant is supported, got: "${variant}"`,
+            errorCategory: "CONFIG_ERROR",
+            retryable: false,
+          };
+        } else {
+          sectionResult = await fetchFIFA({
+            eventId: query.eventId,
+            section: section,
+            minSeats: query.minSeats || 1,
+            maxPrice: query.maxPrice,
+            variant: "resale",
+            productId: query.fifaProductId || null,
+          });
+
+          // Persist extracted productId to DB if not already stored
+          if (
+            sectionResult._extractedProductId &&
+            !query.fifaProductId
+          ) {
+            try {
+              await prisma.query.update({
+                where: { id: queryId },
+                data: { fifaProductId: sectionResult._extractedProductId },
+              });
+              console.log(
+                `[runQuery] FIFA productId persisted: ${sectionResult._extractedProductId} (queryId=${queryId})`,
+              );
+            } catch (persistErr) {
+              console.error(
+                `[runQuery] Failed to persist FIFA productId: ${persistErr.message}`,
+              );
+            }
+          }
+
+          // Handle cooldown skip — don't mark as ERROR
+          if (sectionResult._fifaCooldownSkipped) {
+            console.log(
+              `[runQuery] FIFA query ${queryId} skipped (cooldown active)`,
+            );
+            // Return early with a non-error result — preserve previous state
+            const latencyMs = Date.now() - start;
+            await prisma.checkResult.create({
+              data: {
+                queryId: queryId,
+                status: query.status === "FOUND" ? "FOUND" : "FINDING",
+                isAvailable: query.isAvailable ?? false,
+                foundPrice: query.foundPrice ?? null,
+                priceExceeded: query.priceExceeded ?? false,
+                foundSection: query.foundSection ?? null,
+                eventName: query.eventName,
+                errorMessage: sectionResult.errorMessage,
+                latencyMs,
+              },
+            });
+            // Restore the lastCheckedAt without changing status
+            await prisma.query.update({
+              where: { id: queryId },
+              data: { lastCheckedAt: new Date() },
+            });
+            return {
+              ...query,
+              updatedQuery: query,
+              previousStatus: query.status,
+              previousIsAvailable: query.isAvailable,
+              currentStatus: query.status,
+              currentIsAvailable: query.isAvailable,
+              foundPrice: query.foundPrice,
+              priceExceeded: query.priceExceeded,
+              errorMessage: sectionResult.errorMessage,
+              errorCategory: "COOLDOWN_SKIP",
+            };
+          }
+        }
       } else if (query.domain === "UK") {
         sectionResult = await fetchUK({
           eventId: query.eventId,
@@ -244,8 +332,10 @@ export async function runQuery(queryId) {
     // Set final foundPrice: prefer available prices over price-exceeded prices
     if (lowestAvailablePrice != null) {
       mergedResult.foundPrice = lowestAvailablePrice;
+      mergedResult.priceExceeded = false;
     } else if (lowestPriceExceededPrice != null) {
       mergedResult.foundPrice = lowestPriceExceededPrice;
+      mergedResult.priceExceeded = true;
     }
 
     result = mergedResult;

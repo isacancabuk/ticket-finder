@@ -93,7 +93,7 @@ export default function HeaderSection() {
         setPickerSelectedCodes((prev) => [...prev, upperCode]);
       }
 
-      const newValue = newCodes.join(" ");
+      const newValue = newCodes.join(", ");
 
       // Set the native input value
       const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
@@ -116,24 +116,15 @@ export default function HeaderSection() {
   const hasUrl = urlValue.trim().length > 0;
 
   return (
-    <div className="h-[270px] w-full flex flex-col items-center justify-center">
+    <div className="pt-8 pb-24 w-full flex flex-col items-center justify-center min-h-[360px]">
       <Form
         ref={formRef}
         method="POST"
-        className="w-[1000px] grid grid-cols-5 gap-5"
+        className="w-[1000px] grid grid-cols-4 gap-5"
       >
         <input type="hidden" name="_action" value="create" />
 
-        {/* Row 0: Description (4 cols) + Sale Site (1 col) */}
-        <div className="col-span-4">
-          <Input
-            type="text"
-            name="description"
-            placeholder="Açıklama / Not"
-            required={false}
-          />
-        </div>
-
+        {/* Row 0: Sale Site (1 col) + Description (3 cols) */}
         <div className="col-span-1">
           <select
             name="saleSite"
@@ -149,7 +140,16 @@ export default function HeaderSection() {
           </select>
         </div>
 
-        {/* Row 1: Order No. | Event URL (3 cols) | Bölümler helper */}
+        <div className="col-span-3">
+          <Input
+            type="text"
+            name="description"
+            placeholder="Açıklama / Not"
+            required={false}
+          />
+        </div>
+
+        {/* Row 1: Order No. | Event URL (2 cols) | Bölümler helper */}
         <div className="col-span-1">
           <Input
             type="text"
@@ -159,7 +159,7 @@ export default function HeaderSection() {
           />
         </div>
 
-        <div className="col-span-3">
+        <div className="col-span-2">
           <Input
             ref={urlInputRef}
             type="url"
@@ -202,20 +202,7 @@ export default function HeaderSection() {
           )}
         </div>
 
-        {/* Row 2: Section No. (with helper text) | Min. Koltuk | Max. Fiyat | Satış Fiyatı | İstek Başlat */}
-        <div className="col-span-1">
-          <Input
-            ref={sectionInputRef}
-            type="text"
-            name="section"
-            placeholder="Section No."
-            required={false}
-          />
-          <p className={styles.helperText}>
-            Boş: Tüm bölümler
-          </p>
-        </div>
-
+        {/* Row 2: Min. Koltuk | Satış Fiyatı | Section No. (2 cols) */}
         <div className="col-span-1">
           <Input
             type="number"
@@ -228,19 +215,6 @@ export default function HeaderSection() {
           </p>
         </div>
 
-        <div className="col-span-1">
-          <Input
-            type="number"
-            name="maxPrice"
-            placeholder="Max. Fiyat"
-            required={false}
-          />
-          <p className={styles.helperText}>
-            Boş: Herhangi fiyat
-          </p>
-        </div>
-
-        {/* Sale Price + Currency Picker */}
         <div className="col-span-1">
           <div style={{ display: "flex", gap: "6px", alignItems: "stretch" }}>
             <div style={{ flex: 1 }}>
@@ -263,6 +237,50 @@ export default function HeaderSection() {
               ))}
             </select>
           </div>
+        </div>
+
+        <div className="col-span-2">
+          <Input
+            ref={sectionInputRef}
+            type="text"
+            name="section"
+            placeholder="Section No."
+            required={false}
+          />
+          <p className={styles.helperText}>
+            Boş: Tüm bölümler
+          </p>
+        </div>
+
+        {/* Row 3: Max Fiyat | GOGO Fiyatı | Tix Fiyatı | İstek Başlat */}
+        <div className="col-span-1">
+          <Input
+            type="number"
+            name="maxPrice"
+            placeholder="Max. Fiyat"
+            required={false}
+          />
+          <p className={styles.helperText}>
+            Boş: Herhangi fiyat
+          </p>
+        </div>
+
+        <div className="col-span-1">
+          <Input
+            type="number"
+            name="gogoPrice"
+            placeholder="GOGO Fiyatı"
+            required={false}
+          />
+        </div>
+
+        <div className="col-span-1">
+          <Input
+            type="number"
+            name="tixPrice"
+            placeholder="Tix Fiyatı"
+            required={false}
+          />
         </div>
 
         <div className="col-span-1 flex">

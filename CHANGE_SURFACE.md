@@ -3,7 +3,7 @@
 Use this guide to know exactly which files to edit when making common changes to the application.
 
 ## 1. Adding a new query input field
-*e.g. adding a "description" constraint or note.*
+*e.g. adding a "description" constraint, note, or "salesSite".*
 - **`backend/prisma/schema.prisma`**: Add the field to the `Query` model. Create migration `npx prisma db push`.
 - **`backend/src/routes/query.routes.js`**: Parse the field from `req.body` in `POST /` (for creation) and `PATCH /:id` (for editing). Add validation.
 - **`frontend/src/App.jsx`**: Add it to the formData payloads in `rootAction` under `intent === "create"` and `intent === "edit"`.
@@ -25,7 +25,7 @@ Use this guide to know exactly which files to edit when making common changes to
 - **UI Mapping**: `frontend/src/Main/MainSection.jsx` (`getDisplayStatus`) and `frontend/src/Main/Card.jsx` (`STATUS_LABELS`).
 
 ## 5. Changing Availability Checking Logic
-- **`backend/fetch-de.js` / `fetch-es.js`**: Modify scraping logic (e.g., broad mode checking, seat mapping).
+- **`backend/src/fetchers/fetch-*.js`**: Modify scraping logic (e.g., broad mode checking, seat mapping). Fetchers are organized by domain (DE, ES, UK, MX, FIFA, etc.).
 - **`backend/src/services/runQuery.js`**: Maps the result of `fetch-*` into DB mutations. Modifying how `isAvailable` or `foundSectionStr` are merged or retained across errors happens here.
 
 ## 6. Changing Telegram Notifications
@@ -33,7 +33,7 @@ Use this guide to know exactly which files to edit when making common changes to
 - **`backend/src/services/buildNotificationDecision.js`**: Modify rules for *when* a ping goes out.
 
 ## 7. Changing Section Picker UI or APIs
-- **`backend/src/routes/query.routes.js`**: The `GET /queries/manifest-sections` endpoint extracts sections via helper utilities.
+- **`backend/src/routes/query.routes.js` & `backend/src/manifests/`**: The `GET /queries/manifest-sections` endpoint extracts sections by importing tools from the dedicated `manifests` directory.
 - **`frontend/src/Header/HeaderSection.jsx` & `SectionPicker.jsx`**: The component fetching the sections and mutating the `sectionInputRef` natively. Includes search filter state logic. CSS updates live in `SectionPicker.module.css`.
 
 ---

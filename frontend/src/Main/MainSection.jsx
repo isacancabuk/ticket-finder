@@ -40,6 +40,7 @@ export default function MainSection({ queries = [], onCardClick }) {
     searchQuery: "",
     selectedCountry: "Tümü",
     selectedSite: "Tümü",
+    selectedSaleSite: "Tümü",
     sortDateAsc: false,
     selectedStatus: "ALL",
     sortByProfit: "HIGH", // HIGH, LOW
@@ -104,6 +105,17 @@ export default function MainSection({ queries = [], onCardClick }) {
           if (!q.url.toLowerCase().includes(expectedSite)) return false;
         } else {
           return false;
+        }
+      }
+
+      // Sale Site filter
+      if (filterState.selectedSaleSite !== "Tümü") {
+        if (filterState.selectedSaleSite === "Belirtilmemiş") {
+          if (q.saleSite && q.saleSite.trim() !== "") return false;
+        } else {
+          if (!q.saleSite || q.saleSite !== filterState.selectedSaleSite) {
+            return false;
+          }
         }
       }
 

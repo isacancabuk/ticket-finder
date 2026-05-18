@@ -33,7 +33,7 @@ async function start() {
       {
         name: 'FIFA Scheduler (Ek Terminal)',
         value: 'fifa',
-        description: 'Sadece FIFA WC26 sorgularını çalıştırır. (API sunucusu başlatmaz, 1dk aralıkla)',
+        description: 'Sadece FIFA WC26 sorgularını çalıştırır. (API sunucusu başlatmaz, 30sn aralıkla)',
       },
       {
         name: 'FIFA Cookie Harvester (Puppeteer)',

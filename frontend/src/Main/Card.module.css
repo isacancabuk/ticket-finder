@@ -82,11 +82,11 @@
 
 .description {
     position: absolute;
-    right: 81px;
+    left: 15px;
     top: 15px;
     width: 250px;
-    text-align: center;
-    font-size: 15px;
+    text-align: left;
+    font-size: 14px;
     font-style: italic;
     color: #888;
     white-space: pre-wrap;

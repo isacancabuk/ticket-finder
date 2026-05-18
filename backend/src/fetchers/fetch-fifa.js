@@ -6,15 +6,73 @@ const MAX_COOKIE_AGE_MS = 30 * 60 * 1000; // 30 dakika
 // Cache: aynı perfId için productId ve metadata tekrar çekilmesin
 const metadataCache = new Map();
 
+// ── Rate limiting & cooldown ─────────────────────────────────────────
+const MIN_REQUEST_INTERVAL_MS = 15000; // İstekler arası minimum 15 saniye
+const COOLDOWN_DURATION_MS = 45 * 1000; // 403 sonrası 45 saniye bekleme (was 120s)
+let lastRequestTime = 0;
+let cooldownUntil = 0;
+
 /**
- * Reads cookies from fifa-cookies.json for a specific variant (shop or resale).
+ * Checks rate limit and cooldown. Returns a skip result instead of throwing
+ * during cooldown so queries are not marked as ERROR.
+ *
+ * @returns {Promise<{ skip: boolean, skipReason?: string }>}
+ */
+async function waitForRateLimit() {
+  const now = Date.now();
+
+  // Cooldown kontrolü — 403 sonrası soft skip
+  if (now < cooldownUntil) {
+    const remainSec = Math.ceil((cooldownUntil - now) / 1000);
+    console.log(
+      `[FIFA] ⏭️ Cooldown active (${remainSec}s remaining) — skipping this tick`,
+    );
+    return {
+      skip: true,
+      skipReason: `FIFA_COOLDOWN: DataDome cooldown aktif (${remainSec}s kaldı)`,
+    };
+  }
+
+  // Rate limit — istekler arası minimum bekleme
+  const elapsed = now - lastRequestTime;
+  if (elapsed < MIN_REQUEST_INTERVAL_MS) {
+    const waitMs = MIN_REQUEST_INTERVAL_MS - elapsed;
+    console.log(
+      `[FIFA] ⏳ Rate limit: waiting ${Math.ceil(waitMs / 1000)}s before next request`,
+    );
+    await new Promise((r) => setTimeout(r, waitMs));
+  }
+
+  lastRequestTime = Date.now();
+  return { skip: false };
+}
+
+/**
+ * Activates cooldown after a 403 response.
+ */
+function activateCooldown() {
+  cooldownUntil = Date.now() + COOLDOWN_DURATION_MS;
+  console.warn(
+    `[FIFA] ⚠️ 403 detected — ${COOLDOWN_DURATION_MS / 1000}s cooldown started (until ${new Date(cooldownUntil).toLocaleTimeString()})`,
+  );
+}
+
+/**
+ * Reads cookies from fifa-cookies.json for a specific variant.
  * Returns them as a Cookie header string.
  * Throws if the file is missing, variant doesn't exist, or cookies are too old.
  *
- * @param {string} variant - "shop" or "resale"
+ * @param {string} variant - "resale" (only supported variant)
  * @returns {Promise<string>} - Cookie header string (name=value; name=value; ...)
  */
-async function loadFifaCookies(variant = "shop") {
+async function loadFifaCookies(variant = "resale") {
+  // Enforce resale-only
+  if (variant !== "resale") {
+    throw new Error(
+      `FIFA_VARIANT_ERROR: Only "resale" variant is supported, got: "${variant}". FIFA is resale-only.`,
+    );
+  }
+
   let raw;
   try {
     raw = await readFile("fifa-cookies.json", "utf-8");
@@ -26,7 +84,7 @@ async function loadFifaCookies(variant = "shop") {
 
   const allCookies = JSON.parse(raw);
 
-  // Variant'a göre cookies'i al (shop veya resale)
+  // Variant'a göre cookies'i al
   const variantCookies = allCookies[variant];
   if (!variantCookies) {
     throw new Error(
@@ -55,7 +113,7 @@ async function loadFifaCookies(variant = "shop") {
 function buildHeaders(
   cookieString,
   perfId,
-  baseUrl = "https://fwc26-shop-usd.tickets.fifa.com",
+  baseUrl = "https://fwc26-resale-usd.tickets.fifa.com",
 ) {
   const referer = perfId
     ? `${baseUrl}/secure/selection/event/seat/performance/${perfId}/lang/en`
@@ -92,22 +150,54 @@ function buildHeaders(
 async function fetchPageMetadata(perfId, cookieString, baseUrl) {
   // Check cache first
   if (metadataCache.has(perfId)) {
-    return metadataCache.get(perfId);
+    const cached = metadataCache.get(perfId);
+    console.log(
+      `[FIFA] ✅ Using cached metadata: productId=${cached.productId} eventName="${cached.eventName || "?"}"`,
+    );
+    return cached;
   }
+
+  console.log(
+    `[FIFA] 🔄 Phase: Fetching metadata page (perfId=${perfId})`,
+  );
 
   const pageUrl = `${baseUrl}/secure/selection/event/seat/performance/${perfId}/lang/en`;
 
-  const response = await gotScraping({
-    url: pageUrl,
-    headers: buildHeaders(cookieString, perfId, baseUrl),
-    headerGeneratorOptions: {
-      browsers: [{ name: "chrome", minVersion: 148, maxVersion: 148 }],
-      operatingSystems: ["macos"],
-    },
-    timeout: { request: 15000 },
-  });
+  let response;
+  try {
+    response = await gotScraping({
+      url: pageUrl,
+      headers: buildHeaders(cookieString, perfId, baseUrl),
+      headerGeneratorOptions: {
+        browsers: [{ name: "chrome", minVersion: 148, maxVersion: 148 }],
+        operatingSystems: ["macos"],
+      },
+      timeout: { request: 15000 },
+      maxRedirects: 3,
+      followRedirect: true,
+    });
+  } catch (reqErr) {
+    // Catch redirect loops and provide actionable error
+    if (reqErr.message?.includes("Redirected") || reqErr.code === "ERR_TOO_MANY_REDIRECTS") {
+      console.error(
+        `[FIFA] ❌ Metadata page redirect loop detected (perfId=${perfId}). ` +
+        `This usually means cookies are expired or were harvested from a different flow. ` +
+        `Run the cookie harvester to get fresh resale cookies.`,
+      );
+      throw new Error(
+        `FIFA_PAGE_ERROR: Redirect loop — cookies likely expired or invalid. Harvester'ı yeniden çalıştırın.`,
+      );
+    }
+    throw reqErr;
+  }
 
   if (response.statusCode !== 200) {
+    if (response.statusCode === 403) {
+      activateCooldown();
+    }
+    console.error(
+      `[FIFA] ❌ Metadata page failed: HTTP ${response.statusCode} (perfId=${perfId})`,
+    );
     throw new Error(
       `FIFA_PAGE_ERROR: Sayfa ${response.statusCode} döndürdü (perfId=${perfId})`,
     );
@@ -118,32 +208,69 @@ async function fetchPageMetadata(perfId, cookieString, baseUrl) {
   // Extract productId from: product_description_header product_{id}
   const productMatch = body.match(/product_description_header\s+product_(\d+)/);
   if (!productMatch) {
+    console.error(
+      `[FIFA] ❌ Metadata parse failed: productId not found in page HTML (perfId=${perfId})`,
+    );
     throw new Error(
       "FIFA_PARSE_ERROR: productId sayfada bulunamadı. Oturum süresi dolmuş olabilir.",
     );
   }
   const productId = productMatch[1];
 
-  // Extract event name from team host/opposing spans
+  // Extract metadata from schema.org JSON-LD (most reliable source)
   let eventName = null;
-  const hostMatch = body.match(
-    /<span class="team host">\s*([^<]+?)\s*(?:<img)/s,
-  );
-  // <img> is a void element (no </img>), opposing team name comes after <img ...> tag
-  const opposingMatch = body.match(
-    /class="team opposing">[\s\S]*?<img[^>]*>\s*([\s\S]*?)\s*<\/span>/,
-  );
+  let eventDate = null;
+  let eventLocation = null;
 
-  if (hostMatch && opposingMatch) {
-    const home = hostMatch[1].trim();
-    const away = opposingMatch[1].trim();
-    if (home && away) {
-      eventName = `${home} vs ${away}`;
+  const ldJsonMatch = body.match(/<script\s+type="application\/ld\+json">([\s\S]*?)<\/script>/);
+  if (ldJsonMatch) {
+    try {
+      const schema = JSON.parse(ldJsonMatch[1]);
+
+      // Event name: use "name" field (e.g. "USA vs. Paraguay")
+      if (schema.name) {
+        eventName = schema.name;
+      }
+
+      // Event date: use "startDate" (e.g. "2026-06-12T18:00:00Z")
+      if (schema.startDate) {
+        // Format: "12.06.2026 - 18:00" for UI consistency
+        const d = new Date(schema.startDate);
+        const day = String(d.getUTCDate()).padStart(2, "0");
+        const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+        const year = d.getUTCFullYear();
+        const hours = String(d.getUTCHours()).padStart(2, "0");
+        const mins = String(d.getUTCMinutes()).padStart(2, "0");
+        eventDate = `${day}.${month}.${year} - ${hours}:${mins}`;
+      }
+
+      // Event location: use "location.name" (e.g. "Los Angeles Stadium")
+      if (schema.location?.name) {
+        eventLocation = schema.location.name;
+      }
+    } catch {
+      // JSON parse failed — fall through to regex fallbacks
+    }
+  }
+
+  // Fallback: regex-based extraction if JSON-LD didn't work
+  if (!eventName) {
+    const hostMatch = body.match(
+      /<span class="team host">\s*([^<]+?)\s*(?:<img)/s,
+    );
+    const opposingMatch = body.match(
+      /class="team opposing">[\s\S]*?<img[^>]*>\s*([\s\S]*?)\s*<\/span>/,
+    );
+    if (hostMatch && opposingMatch) {
+      const home = hostMatch[1].trim();
+      const away = opposingMatch[1].trim();
+      if (home && away) {
+        eventName = `${home} vs ${away}`;
+      }
     }
   }
 
   if (!eventName) {
-    // Fallback: try og:title
     const ogMatch = body.match(
       /<meta\s+property="og:title"\s+content="([^"]+)"/,
     );
@@ -152,40 +279,93 @@ async function fetchPageMetadata(perfId, cookieString, baseUrl) {
     }
   }
 
-  // Extract event date from og:title: "Los Angeles Stadium | 12.06.2026 - 18:00 | FIFA World Cup 2026™"
-  let eventDate = null;
-  const ogTitleMatch = body.match(
-    /<meta\s+property="og:title"\s+content="([^"]+)"/,
-  );
-  if (ogTitleMatch) {
-    const parts = ogTitleMatch[1].split("|").map((s) => s.trim());
-    if (parts.length >= 2) {
-      eventDate = parts[1]; // e.g. "12.06.2026 - 18:00"
-    }
-  }
-
-  // Extract event location from og:title
-  let eventLocation = null;
-  if (ogTitleMatch) {
-    const parts = ogTitleMatch[1].split("|").map((s) => s.trim());
-    if (parts.length >= 1) {
-      eventLocation = parts[0]; // e.g. "Los Angeles Stadium"
-    }
-  }
-
   const metadata = { productId, eventName, eventDate, eventLocation };
   metadataCache.set(perfId, metadata);
+
+  console.log(
+    `[FIFA] ✅ Metadata fetched: productId=${productId} eventName="${eventName || "?"}" eventDate="${eventDate || "?"}"`,
+  );
+
   return metadata;
 }
 
 /**
+ * Parses a FIFA section string into individual category names.
+ * Handles multiple input formats:
+ *   - Comma-separated: "Category 1,Category 2,Category 3"
+ *   - Space-separated (from section picker): "CATEGORY 1 CATEGORY 2 CATEGORY 3"
+ *   - Mixed: "Category 1, CATEGORY 2"
+ *
+ * @param {string} sectionStr - Raw section string from DB
+ * @returns {string[]} - Array of lowercase category names
+ */
+function parseFifaSectionString(sectionStr) {
+  if (!sectionStr) return [];
+
+  // If it contains commas, split on comma (explicit delimiter)
+  if (sectionStr.includes(",")) {
+    return sectionStr
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter((s) => s.length > 0);
+  }
+
+  // No commas — try to detect "Category N" patterns (e.g. "CATEGORY 1 CATEGORY 2 CATEGORY 3")
+  // This regex matches "category" followed by optional space and a number/letter suffix
+  const categoryPattern = /category\s+\S+/gi;
+  const matches = sectionStr.match(categoryPattern);
+  if (matches && matches.length > 0) {
+    console.log(
+      `[FIFA] 📝 Parsed space-separated categories: ${matches.map((m) => `"${m}"`).join(", ")}`,
+    );
+    return matches.map((m) => m.trim().toLowerCase());
+  }
+
+  // Fallback: treat entire string as one category name
+  return [sectionStr.trim().toLowerCase()].filter((s) => s.length > 0);
+}
+
+/**
+ * Counts total available resale seats for a given category from areaBlocksAvailability.
+ * Sums availabilityResale values across all blocks belonging to the category.
+ *
+ * @param {object} cat - The priceRangeCategory object
+ * @param {object} areaBlocksAvailability - Map of blockId -> { availability, availabilityResale }
+ * @returns {number} - Total available resale seats for this category
+ */
+function countAvailableSeats(cat, areaBlocksAvailability) {
+  if (!areaBlocksAvailability || !cat.blocks) return 0;
+
+  let total = 0;
+
+  for (const block of cat.blocks) {
+    const blockId = block.id?.toString();
+    if (!blockId) continue;
+
+    const blockAvail = areaBlocksAvailability[blockId];
+    if (blockAvail && typeof blockAvail.availabilityResale === "number") {
+      total += blockAvail.availabilityResale;
+    }
+  }
+
+  return total;
+}
+
+/**
  * Checks ticket availability on FIFA WC26 via the seatmap availability API.
+ * Resale-only — shop variant is not supported.
+ *
+ * NOTE: This function handles ALL sections in a single API call.
+ * runQuery passes each section separately, but the API returns all categories at once.
+ * The section parameter filters which category to check in the response.
  *
  * @param {object} opts
  * @param {string} opts.eventId - perfId from URL
  * @param {string|null} opts.section - Category name (EN) to match, null = any category
- * @param {number} opts.minSeats - Not used for FIFA (availability is category-level)
+ * @param {number} opts.minSeats - Minimum available seats required
  * @param {number|null} opts.maxPrice - Max per-ticket price in cents (USD), null = no limit
+ * @param {string} opts.variant - Must be "resale" (enforced)
+ * @param {string|null} opts.productId - Pre-cached productId from DB (skips metadata page fetch)
  * @returns {Promise<object>}
  */
 export async function fetchFIFA({
@@ -193,15 +373,33 @@ export async function fetchFIFA({
   section,
   minSeats = 1,
   maxPrice,
-  variant = "shop",
+  variant = "resale",
+  productId: cachedProductId = null,
 }) {
   const start = Date.now();
   const perfId = eventId;
 
+  // ── Phase: Variant enforcement ──
+  if (variant !== "resale") {
+    console.error(
+      `[FIFA] ❌ Variant "${variant}" is not supported — FIFA is resale-only`,
+    );
+    return {
+      success: false,
+      errorMessage: `FIFA_VARIANT_ERROR: Only "resale" variant is supported, got: "${variant}"`,
+      errorCategory: "CONFIG_ERROR",
+      retryable: false,
+      latencyMs: Date.now() - start,
+    };
+  }
+
+  // ── Phase: Load cookies ──
+  console.log(`[FIFA] 🔄 Phase: Loading cookies for variant=resale`);
   let cookieString;
   try {
-    cookieString = await loadFifaCookies(variant);
+    cookieString = await loadFifaCookies("resale");
   } catch (err) {
+    console.error(`[FIFA] ❌ Cookie/session error: ${err.message}`);
     return {
       success: false,
       errorMessage: err.message,
@@ -213,18 +411,69 @@ export async function fetchFIFA({
     };
   }
 
-  // Determine base URL using the variant (shop or resale)
-  const baseUrl = `https://fwc26-${variant}-usd.tickets.fifa.com`;
+  const baseUrl = "https://fwc26-resale-usd.tickets.fifa.com";
 
   try {
-    // Step 1: Get productId and metadata from the HTML page
-    const { productId, eventName, eventDate } = await fetchPageMetadata(
-      perfId,
-      cookieString,
-      baseUrl,
+    // ── Phase: Rate limit / cooldown check ──
+    const rateLimitResult = await waitForRateLimit();
+    if (rateLimitResult.skip) {
+      return {
+        success: false,
+        errorMessage: rateLimitResult.skipReason,
+        errorCategory: "COOLDOWN_SKIP",
+        retryable: true,
+        _fifaCooldownSkipped: true,
+        latencyMs: Date.now() - start,
+      };
+    }
+
+    // ── Phase: Get productId ──
+    let productId = cachedProductId;
+    let eventName = null;
+    let eventDate = null;
+
+    if (productId) {
+      // Use cached productId — skip metadata page entirely
+      console.log(
+        `[FIFA] ✅ Using DB-cached productId=${productId} — skipping metadata page fetch`,
+      );
+      // Try to get eventName/eventDate from in-memory cache
+      if (metadataCache.has(perfId)) {
+        const cached = metadataCache.get(perfId);
+        eventName = cached.eventName;
+        eventDate = cached.eventDate;
+      }
+    } else {
+      // Fetch metadata page to extract productId
+      // (fetchPageMetadata has its own in-memory cache — only makes HTTP request on cache miss)
+      const cacheHadEntry = metadataCache.has(perfId);
+      const metadata = await fetchPageMetadata(perfId, cookieString, baseUrl);
+      productId = metadata.productId;
+      eventName = metadata.eventName;
+      eventDate = metadata.eventDate;
+
+      // Wait 10s ONLY after a real HTTP request (not in-memory cache hit)
+      if (!cacheHadEntry) {
+        console.log(
+          `[FIFA] ⏳ Metadata fetched via HTTP — waiting 10s before availability API call`,
+        );
+        await new Promise((r) => setTimeout(r, 10000));
+      }
+    }
+
+    // ── Phase: Availability API call ──
+    console.log(
+      `[FIFA] 🔄 Phase: Calling availability API (perfId=${perfId} productId=${productId})`,
     );
 
-    // Step 2: Call availability API
+    // Re-read cookies fresh before availability call
+    let freshCookieString;
+    try {
+      freshCookieString = await loadFifaCookies("resale");
+    } catch {
+      freshCookieString = cookieString; // fallback to original
+    }
+
     const availUrl =
       `${baseUrl}/tnwr/v1/secure/seatmap/availability` +
       `?perfId=${perfId}&productId=${productId}` +
@@ -234,7 +483,7 @@ export async function fetchFIFA({
     const availResponse = await gotScraping({
       url: availUrl,
       headers: {
-        ...buildHeaders(cookieString, perfId, baseUrl),
+        ...buildHeaders(freshCookieString, perfId, baseUrl),
         Accept: "application/json, text/plain, */*",
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
@@ -247,13 +496,22 @@ export async function fetchFIFA({
     });
 
     if (availResponse.statusCode !== 200) {
+      // 403 = DataDome block — cooldown başlat
+      if (availResponse.statusCode === 403) {
+        activateCooldown();
+      }
+      console.error(
+        `[FIFA] ❌ Availability API failed: HTTP ${availResponse.statusCode}`,
+      );
       return {
         success: false,
         errorMessage: `FIFA_AVAIL_ERROR: Availability API ${availResponse.statusCode} döndürdü`,
         errorCategory: "HTTP_ERROR",
         httpStatus: availResponse.statusCode,
-        retryable: availResponse.statusCode >= 500,
+        retryable: true,
         latencyMs: Date.now() - start,
+        // Return productId so runQuery can still persist it even on API failure
+        _extractedProductId: productId,
       };
     }
 
@@ -261,18 +519,29 @@ export async function fetchFIFA({
     try {
       data = JSON.parse(availResponse.body);
     } catch {
+      console.error(
+        `[FIFA] ❌ Availability API response is not valid JSON`,
+      );
       return {
         success: false,
         errorMessage: "FIFA_PARSE_ERROR: Availability API JSON parse edilemedi",
         errorCategory: "PARSING_ERROR",
         retryable: false,
         latencyMs: Date.now() - start,
+        _extractedProductId: productId,
       };
     }
 
-    // Step 3: Process priceRangeCategories
+    // ── Phase: Process priceRangeCategories ──
     const categories = data.priceRangeCategories || [];
     const isBroadMode = !section;
+
+    // Build a set of target category names for multi-category matching
+    // Handles both comma-separated ("Category 1,Category 3") and
+    // space-separated from section picker ("CATEGORY 1 CATEGORY 2 CATEGORY 3")
+    const targetCategoryNames = isBroadMode
+      ? null
+      : parseFifaSectionString(section);
 
     let isAvailable = false;
     let cheapestMatchingPrice = null;
@@ -281,34 +550,37 @@ export async function fetchFIFA({
     for (const cat of categories) {
       const catNameEN = cat.name?.en || "";
 
-      // Section filtering: match category name (case-insensitive)
-      if (!isBroadMode) {
-        if (catNameEN.toLowerCase() !== section.toLowerCase()) {
+      // Section filtering: match category name against target list (case-insensitive)
+      if (targetCategoryNames) {
+        if (!targetCategoryNames.includes(catNameEN.toLowerCase())) {
           continue;
         }
       }
 
-      // FIFA API returns prices in milli-units (1/1000 of currency unit)
-      // e.g. 2735000 = $2,735.00 → convert to cents: 2735000 / 10 = 273500 cents
-      const catId = cat.id.toString();
+      // --- MinSeats check via category-level areaBlocksAvailability (resale only) ---
+      // IMPORTANT: areaBlocksAvailability lives INSIDE each category object, not at the top level
+      const catAreaBlocks = cat.areaBlocksAvailability || {};
+      const totalSeats = countAvailableSeats(cat, catAreaBlocks);
+
+      console.log(
+        `[FIFA]   📊 "${catNameEN}": ${totalSeats} resale seats (minSeats=${minSeats})`,
+      );
+
+      if (totalSeats < minSeats) {
+        // Not enough seats in this category, skip it
+        continue;
+      }
+
+      // --- Price extraction (resale: seatPriceRanges with 15% tax) ---
+      const catId = cat.id?.toString();
       const seatPriceRanges =
         data.seatMapPriceRanges?.seatPriceRangesBySeatCat?.[catId];
 
       let priceCents = null;
 
-      if (variant === "resale") {
-        // Resale: must use seatPriceRanges with 15% tax
-        if (seatPriceRanges?.min != null) {
-          const basePrice = seatPriceRanges.min / 10;
-          priceCents = Math.round(basePrice * 1.15);
-        }
-      } else {
-        // Shop: use seatPriceRanges if available, otherwise use minPrice
-        if (seatPriceRanges?.min != null) {
-          priceCents = Math.round(seatPriceRanges.min / 10);
-        } else if (cat.minPrice != null) {
-          priceCents = Math.round(cat.minPrice / 10);
-        }
+      if (seatPriceRanges?.min != null) {
+        const basePrice = seatPriceRanges.min / 10;
+        priceCents = Math.round(basePrice * 1.15);
       }
 
       if (priceCents == null) continue;
@@ -321,8 +593,7 @@ export async function fetchFIFA({
         cheapestMatchingPrice = priceCents;
       }
 
-      // If a category exists with a price, tickets are available
-      // (no need to check blocks/seats — category presence = availability)
+      // Check price constraint
       if (!maxPrice || priceCents <= maxPrice) {
         isAvailable = true;
       } else {
@@ -337,6 +608,10 @@ export async function fetchFIFA({
 
     const latencyMs = Date.now() - start;
 
+    console.log(
+      `[FIFA] ✅ Availability API success: available=${isAvailable} price=${cheapestMatchingPrice} priceExceeded=${!isAvailable && priceExceeded} (${latencyMs}ms)`,
+    );
+
     return {
       success: true,
       isAvailable,
@@ -345,10 +620,20 @@ export async function fetchFIFA({
       eventName,
       eventDate,
       latencyMs,
+      // Return productId so runQuery can persist it to DB
+      _extractedProductId: productId,
     };
   } catch (err) {
-    // Clear cache on error (page might need re-fetch)
-    metadataCache.delete(perfId);
+    // Only clear cache on page-level errors (HTML parsing/fetch failures).
+    // Availability API errors (403, 500 etc.) should NOT invalidate the cached productId/metadata.
+    if (
+      err.message.includes("FIFA_PAGE_ERROR") ||
+      err.message.includes("FIFA_PARSE_ERROR")
+    ) {
+      metadataCache.delete(perfId);
+    }
+
+    console.error(`[FIFA] ❌ Unexpected error: ${err.message}`);
 
     return {
       success: false,

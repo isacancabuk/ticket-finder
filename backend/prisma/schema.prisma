@@ -47,7 +47,10 @@ model Query {
   salePriceCurrency String       @default("EUR")  // ISO 4217 code for salePrice
   orderNo           String       @default("")   // operational reference, not unique
   saleSite          String?                     // optional: which resale platform (e.g. ViaGogo, StubHub)
+  gogoPrice         Int?                        // optional: GOGO price in cents (EUR)
+  tixPrice          Int?                        // optional: Tix price in cents (EUR)
   description       String?                     // optional free-text note / description
+  fifaProductId     String?                     // cached FIFA product ID to avoid repeated HTML parsing
 
   isActive          Boolean      @default(true)
 

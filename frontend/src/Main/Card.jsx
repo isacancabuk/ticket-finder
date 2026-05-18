@@ -2,6 +2,22 @@ import { useState } from "react";
 import styles from "./Card.module.css";
 import "/node_modules/flag-icons/css/flag-icons.min.css";
 
+import ViagogoLogo from "../assets/ViaGogo.png";
+import TixStockLogo from "../assets/TixStock.png";
+import VividLogo from "../assets/Vivid.png";
+import GigsbergLogo from "../assets/Gigsberg.jpg";
+import StubHubLogo from "../assets/StubHub.png";
+import TicomboLogo from "../assets/Ticombo.png";
+
+const SALE_SITE_LOGOS = {
+  ViaGogo: ViagogoLogo,
+  TixStock: TixStockLogo,
+  Vivid: VividLogo,
+  Gigsberg: GigsbergLogo,
+  StubHub: StubHubLogo,
+  Ticombo: TicomboLogo,
+};
+
 const DOMAIN_CURRENCY = {
   DE: "EUR",
   UK: "GBP",
@@ -58,6 +74,9 @@ export default function Card({ query, onClick }) {
     salePriceCurrency,
     salePriceInEUR,
     foundPriceInEUR,
+    maxPrice,
+    gogoPrice,
+    tixPrice,
   } = query;
   const isFifa = domain === "FIFA";
   const site = isFifa ? "FifaLogo.svg" : "TicketMaster";
@@ -92,6 +111,7 @@ export default function Card({ query, onClick }) {
   let profitLossLine = null;
   const profitLoss = query.profitLoss;
   const profitLossCurrency = query.profitLossCurrency;
+  let isProfit = null;
   if (
     (displayStatus === "found" ||
       displayStatus === "price_exceeded" ||
@@ -101,26 +121,17 @@ export default function Card({ query, onClick }) {
   ) {
     if (profitLoss != null && profitLossCurrency) {
       if (profitLoss > 0) {
-        profitLossLine = (
-          <span className="text-green-600 font-bold">
-            , {formatPrice(profitLoss, profitLossCurrency)}
-            {"\u00A0"}kâr
-          </span>
-        );
+        isProfit = true;
+        profitLossLine = formatPrice(profitLoss, profitLossCurrency);
       } else if (profitLoss < 0) {
-        profitLossLine = (
-          <span className="text-red-500 font-bold">
-            , {formatPrice(Math.abs(profitLoss), profitLossCurrency)}
-            {"\u00A0"}zarar
-          </span>
-        );
+        isProfit = false;
+        profitLossLine = formatPrice(Math.abs(profitLoss), profitLossCurrency);
       } else {
-        profitLossLine = (
-          <span className="text-gray-500 font-bold">, 0{"\u00A0"}kâr</span>
-        );
+        isProfit = true;
+        profitLossLine = `0\u00A0${profitLossCurrency}`;
       }
     } else {
-      profitLossLine = <span className="text-gray-400 font-bold">, –</span>;
+      profitLossLine = "–";
     }
   }
 
@@ -147,24 +158,52 @@ export default function Card({ query, onClick }) {
       onClick={() => onClick(query)}
     >
       <div className={styles.imgDiv}>
-        <img src={imgUrl} alt={site} />
+        <div className="flex items-center gap-3">
+          <img
+            src={imgUrl}
+            alt={site}
+            style={isFifa ? { maxWidth: "80px", height: "auto" } : undefined}
+          />
+          {!isFifa && (
+            <div className="flex flex-row items-center justify-center gap-1 bg-white/30 px-2 py-1 rounded-md shadow-sm border border-white/20">
+              <span
+                className={`fi fi-${countryCode}`}
+                style={{ fontSize: "1.2rem", borderRadius: "2px" }}
+              ></span>
+              <span className="font-bold text-xs" style={{ color: "#555" }}>
+                {domain || "DE"}
+              </span>
+            </div>
+          )}
+        </div>
         {description && (
           <p className={styles.description} title={description}>
             <span style={{ color: "#555", fontWeight: "800" }}>NOT:</span>{" "}
             {description}
           </p>
         )}
+        <p 
+          className={`font-bold text-2xl ${styles.statusText}`} 
+          style={{ position: "absolute", left: "687px", top: "18px", color: "#555" }}
+        >
+          {statusLabel}
+        </p>
       </div>
 
       <div className={styles.infoDiv}>
         <div className="flex flex-col items-center justify-center">
           {saleSite && (
-            <p className={styles.saleSite}>
-              <span style={{ color: "#888", fontWeight: 600 }}>
+            <div className={`${styles.saleSite} flex flex-col items-center justify-center gap-0.5`}>
+              <span style={{ color: "#555", fontWeight: 800 }}>
                 Satış Sitesi:
-              </span>{" "}
-              {saleSite}
-            </p>
+              </span>
+              <div className="flex items-center gap-1.5">
+                {SALE_SITE_LOGOS[saleSite] && (
+                  <img src={SALE_SITE_LOGOS[saleSite]} alt={saleSite} style={{ height: "1.1em", width: "auto", borderRadius: "2px" }} />
+                )}
+                <span style={{ fontWeight: 800 }}>{saleSite}</span>
+              </div>
+            </div>
           )}
           {orderNo && (
             <p
@@ -173,34 +212,30 @@ export default function Card({ query, onClick }) {
               title="Kopyalamak için tıkla"
               style={{ cursor: "copy", position: "relative" }}
             >
-              Order Number: {orderNo}
+              <span style={{ fontWeight: 800 }}>Order Number:</span>{" "}
+              <span style={{ fontWeight: 500 }}>{orderNo}</span>
               {copied && (
                 <span className={styles.copiedToast}>Kopyalandı!</span>
               )}
             </p>
           )}
-          {isFifa ? (
-            <span className={styles.flag} style={{ fontSize: "1.6rem" }}></span>
-          ) : (
-            <span className={`fi fi-${countryCode} ${styles.flag}`}></span>
-          )}
-          <p className="font-bold">{domain || "DE"}</p>
         </div>
 
-        <div className="flex flex-col items-center">
-          {metaLine && <p className={styles.eventMeta}>{metaLine}</p>}
+        <div className="flex flex-col items-center px-6 w-full">
+          {metaLine && <p className={`${styles.eventMeta} font-bold`}>{metaLine}</p>}
           <p
             className="text-2xl font-bold text-center"
             style={{
               textWrap: "balance",
               lineHeight: "1.2",
               marginBottom: "4px",
+              color: "#555",
             }}
           >
             {eventName || "Unknown Event"}
           </p>
           <p className="text-lg text-gray-500 font-bold">
-            Section: {section || "Tümü"}
+            ARANAN: {section || "Tümü"}
             {minSeats && minSeats > 1 ? ` x ${minSeats}` : ""}
           </p>
           {query.foundSection &&
@@ -210,72 +245,55 @@ export default function Card({ query, onClick }) {
               <p
                 className={`text-md font-bold ${displayStatus === "price_exceeded" ? "text-orange-500" : "text-green-600"}`}
               >
-                Bulunan: {query.foundSection}
+                BULUNAN: {query.foundSection}
               </p>
             )}
         </div>
 
-        <div className="flex flex-col items-center gap-1">
-          <div className="flex flex-col items-center text-center">
-            <p className="text-sm font-bold text-gray-700">
-              {salePrice != null ? (
-                <>
-                  <span className="whitespace-nowrap">
-                    {formatPrice(salePrice, saleCurrency)}
-                    {"\u00A0"}satış{"\u00A0"}fiyatı
-                  </span>
-                  {salePriceInEUR != null && salePriceCurrency !== "EUR" && (
-                    <span className="text-xs text-gray-500 block sm:inline">
-                      {" "}
-                      ({formatPrice(salePriceInEUR, "EUR")})
-                    </span>
-                  )}
-                </>
-              ) : (
-                "\u00A0"
-              )}
-            </p>
+        <div className="flex flex-col items-start justify-center w-full pl-6">
+          <div className="text-xs font-bold flex flex-col gap-0.5 items-start" style={{ color: "#555" }}>
+             {salePrice != null && (
+                 <p>
+                    <span className="text-indigo-500">SATIŞ:</span> {formatPrice(salePrice, saleCurrency)}
+                    {salePriceInEUR != null && salePriceCurrency !== "EUR" && ` (${formatPrice(salePriceInEUR, "EUR")})`}
+                 </p>
+             )}
+             {maxPrice != null && (
+                 <p>
+                    <span className="text-orange-500">MAX:</span> {formatPrice(maxPrice, foundCurrency)}
+                 </p>
+             )}
+             {(displayStatus === "found" || displayStatus === "price_exceeded" || displayStatus === "purchased") && foundPrice != null && (
+                 <p>
+                    <span className="text-emerald-600">BULUNAN:</span> {foundPrice === -1 ? "Fiyat bilgisi yok" : `${formatPrice(foundPrice, foundCurrency)}${foundPriceInEUR != null && foundCurrency !== "EUR" ? ` (${formatPrice(foundPriceInEUR, "EUR")})` : ""}`}
+                 </p>
+             )}
+             {profitLossLine && (
+                 <p>
+                    <span className="text-gray-500">{isProfit === false ? "ZARAR:" : "KAR:"}</span> <span className={isProfit === false ? "text-red-500" : "text-green-600"}>{profitLossLine}</span>
+                 </p>
+             )}
+
+             {(gogoPrice != null || tixPrice != null) && (
+                 <>
+                     <br />
+                     <div className="flex flex-col gap-0.5">
+                         {gogoPrice != null && (
+                             <p className="text-purple-600 flex items-center gap-1.5">
+                                 <img src={SALE_SITE_LOGOS["ViaGogo"]} alt="GOGO" style={{ height: "1.1em", width: "auto", borderRadius: "2px" }} />
+                                 <span><span className="text-gray-500">GOGO:</span> {formatPrice(gogoPrice, "EUR")}</span>
+                             </p>
+                         )}
+                         {tixPrice != null && (
+                             <p className="text-purple-600 flex items-center gap-1.5">
+                                 <img src={SALE_SITE_LOGOS["TixStock"]} alt="Tix" style={{ height: "1.1em", width: "auto", borderRadius: "2px" }} />
+                                 <span><span className="text-gray-500">Tix:</span> {formatPrice(tixPrice, "EUR")}</span>
+                             </p>
+                         )}
+                     </div>
+                 </>
+             )}
           </div>
-          <p className={`font-bold text-2xl ${styles.statusText}`}>
-            {statusLabel}
-          </p>
-          <p
-            className={`${styles.priceInfo} text-center`}
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              gap: "2px 4px",
-            }}
-          >
-            {(displayStatus === "found" ||
-              displayStatus === "price_exceeded" ||
-              displayStatus === "purchased") &&
-            foundPrice != null ? (
-              foundPrice === -1 ? (
-                <span className="whitespace-nowrap font-bold text-gray-500">
-                  Fiyat bilgisi yok (Bilet bulundu)
-                </span>
-              ) : (
-                <>
-                  <span className="whitespace-nowrap">
-                    {formatPrice(foundPrice, foundCurrency)}
-                    {"\u00A0"}bulundu
-                  </span>
-                  {foundPriceInEUR != null && foundCurrency !== "EUR" && (
-                    <span className="text-xs text-gray-500 whitespace-nowrap">
-                      ({formatPrice(foundPriceInEUR, "EUR")})
-                    </span>
-                  )}
-                  {profitLossLine && (
-                    <span className="whitespace-nowrap">{profitLossLine}</span>
-                  )}
-                </>
-              )
-            ) : (
-              "\u00A0"
-            )}
-          </p>
           {status === "ERROR" && lastErrorMessage && (
             <p className={styles.errorMessage}>{lastErrorMessage}</p>
           )}
