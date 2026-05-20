@@ -19,28 +19,33 @@
 }
 
 .cardDiv[data-status="found"] {
-    background: rgba(193, 229, 159, 0.39);
-    border: 1px solid rgba(193, 229, 159, 0.87);
+    background: var(--card-bg-found);
+    border: 1px solid var(--card-border-found);
 }
 
 .cardDiv[data-status='finding'] {
-    background: rgba(174, 222, 252, 0.39);
-    border: 1px solid rgba(174, 222, 252, 0.87);
+    background: var(--card-bg-finding);
+    border: 1px solid var(--card-border-finding);
 }
 
 .cardDiv[data-status="stopped"] {
-    background: rgba(180, 180, 180, 0.39);
-    border: 1px solid rgba(180, 180, 180, 0.87);
+    background: var(--card-bg-stopped);
+    border: 1px solid var(--card-border-stopped);
 }
 
 .cardDiv[data-status="error"] {
-    background: rgba(255, 136, 85, 0.30);
-    border: 1px solid rgba(255, 136, 85, 0.75);
+    background: var(--card-bg-error);
+    border: 1px solid var(--card-border-error);
 }
 
 .cardDiv[data-status="price_exceeded"] {
-    background: rgba(255, 193, 7, 0.25);
-    border: 1px solid rgba(255, 193, 7, 0.70);
+    background: var(--card-bg-price-exceeded);
+    border: 1px solid var(--card-border-price-exceeded);
+}
+
+.cardDiv[data-status="purchased"] {
+    background: var(--card-bg-purchased);
+    border: 1px solid var(--card-border-purchased);
 }
 
 .imgDiv {
@@ -66,7 +71,7 @@
     text-align: center;
     font-size: 13px;
     font-weight: 800;
-    color: #7c3aed;
+    color: var(--text-purple);
     letter-spacing: 0.3px;
     margin-bottom: 2px;
 }
@@ -75,7 +80,7 @@
     text-align: center;
     font-size: 14px;
     font-weight: 900;
-    color: #555;
+    color: var(--text-secondary);
     letter-spacing: 0.3px;
     margin-bottom: 4px;
 }
@@ -88,7 +93,7 @@
     text-align: left;
     font-size: 14px;
     font-style: italic;
-    color: #888;
+    color: var(--text-muted);
     white-space: pre-wrap;
     word-wrap: break-word;
 }
@@ -104,7 +109,7 @@
 
 .eventMeta {
     font-size: 18px;
-    color: #888;
+    color: var(--text-muted);
     margin-top: 2px;
 }
 
@@ -114,14 +119,14 @@
 
 .priceInfo {
     font-size: 12px;
-    color: #b8860b;
+    color: var(--text-warning);
     font-weight: 600;
     margin-top: 2px;
 }
 
 .errorMessage {
     font-size: 11px;
-    color: #cc4400;
+    color: var(--text-danger);
     max-width: 180px;
     text-align: center;
     overflow: hidden;
@@ -133,7 +138,7 @@
 
 .eventLink {
     font-size: 22px;
-    color: #305bce;
+    color: var(--text-info);
     text-decoration: none;
     padding: 6px 10px;
     border-radius: 8px;
@@ -141,7 +146,7 @@
 }
 
 .eventLink:hover {
-    background-color: rgba(48, 91, 206, 0.1);
+    background-color: color-mix(in srgb, var(--text-info) 10%, transparent);
 }
 
 .copiedToast {
@@ -170,4 +175,20 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Helper classes to resolve inline style code smell */
+.textSecondary {
+    color: var(--text-secondary) !important;
+}
+
+.textMuted {
+    color: var(--text-muted) !important;
+}
+
+.eventTitle {
+    color: var(--text-secondary);
+    text-wrap: balance;
+    line-height: 1.2;
+    margin-bottom: 4px;
 }

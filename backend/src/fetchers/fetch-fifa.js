@@ -12,6 +12,12 @@ const COOLDOWN_DURATION_MS = 45 * 1000; // 403 sonrası 45 saniye bekleme (was 1
 let lastRequestTime = 0;
 let cooldownUntil = 0;
 
+// Metadata keys written by the harvester — must never appear in Cookie header
+const COOKIE_METADATA_KEYS = new Set(["_harvestedAt", "_readinessChecks"]);
+
+// SHA-256 of empty string — stx_advantage_ids uses this when no advantages are selected
+const EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
 /**
  * Checks rate limit and cooldown. Returns a skip result instead of throwing
  * during cooldown so queries are not marked as ERROR.
@@ -58,9 +64,40 @@ function activateCooldown() {
 }
 
 /**
+ * Validates that the resale cookie map contains all critical cookies
+ * required for a working FIFA resale session.
+ *
+ * @param {object} cookieMap - key/value map of cookies
+ * @returns {{ valid: boolean, missing: string[] }}
+ */
+function validateResaleCookies(cookieMap) {
+  const missing = [];
+
+  if (!cookieMap.datadome) missing.push("datadome");
+  if (!cookieMap.STX_SESSION && !cookieMap.PKP_ID) missing.push("STX_SESSION/PKP_ID");
+  if (!cookieMap.CACHE_PKP_TOKEN) missing.push("CACHE_PKP_TOKEN");
+
+  const advIds = cookieMap.stx_advantage_ids;
+  if (!advIds) {
+    missing.push("stx_advantage_ids");
+  } else if (advIds === EMPTY_SHA256) {
+    missing.push("stx_advantage_ids (empty hash)");
+  }
+
+  // Check for AcpAT-*-Resale cookie
+  const hasResaleAuth = Object.keys(cookieMap).some(
+    (k) => k.startsWith("AcpAT") && k.includes("Resale"),
+  );
+  if (!hasResaleAuth) missing.push("AcpAT-*-Resale");
+
+  return { valid: missing.length === 0, missing };
+}
+
+/**
  * Reads cookies from fifa-cookies.json for a specific variant.
  * Returns them as a Cookie header string.
- * Throws if the file is missing, variant doesn't exist, or cookies are too old.
+ * Throws if the file is missing, variant doesn't exist, cookies are too old,
+ * or critical session cookies are missing.
  *
  * @param {string} variant - "resale" (only supported variant)
  * @returns {Promise<string>} - Cookie header string (name=value; name=value; ...)
@@ -82,27 +119,46 @@ async function loadFifaCookies(variant = "resale") {
     );
   }
 
-  const allCookies = JSON.parse(raw);
+  // Safe JSON parse — handle corrupted or half-written files
+  let allCookies;
+  try {
+    allCookies = JSON.parse(raw);
+  } catch (parseErr) {
+    throw new Error(
+      `FIFA_COOKIE_CORRUPTED: fifa-cookies.json parse edilemedi (${parseErr.message}). Dosya yarım yazılmış olabilir.`,
+    );
+  }
 
   // Variant'a göre cookies'i al
   const variantCookies = allCookies[variant];
-  if (!variantCookies) {
+  if (!variantCookies || typeof variantCookies !== "object") {
     throw new Error(
       `FIFA_COOKIE_MISSING: "${variant}" variant'ı için çerez bulunamadı. fifa-cookies.json içinde ${Object.keys(allCookies).join(", ")} variant'ları var.`,
     );
   }
 
+  // Age check
   const age = Date.now() - (variantCookies._harvestedAt || 0);
-
   if (age > MAX_COOKIE_AGE_MS) {
     throw new Error(
       `FIFA_COOKIE_EXPIRED: ${variant} çerezleri ${Math.round(age / 60000)} dakika önce alınmış (max ${MAX_COOKIE_AGE_MS / 60000} dk). Tarayıcıyı kontrol edin.`,
     );
   }
 
-  // Çerezleri "name=value; name=value; ..." formatına dönüştür
+  // Validate critical cookies are present
+  const { valid, missing } = validateResaleCookies(variantCookies);
+  if (!valid) {
+    console.error(
+      `[FIFA] ❌ Cookie validation failed — missing critical cookies: ${missing.join(", ")}`,
+    );
+    throw new Error(
+      `FIFA_COOKIE_INCOMPLETE: Resale session eksik — missing: ${missing.join(", ")}. Harvester çalışıyor mu kontrol edin.`,
+    );
+  }
+
+  // Build cookie string — exclude metadata keys (never send as browser cookies)
   return Object.entries(variantCookies)
-    .filter(([k]) => k !== "_harvestedAt")
+    .filter(([k]) => !COOKIE_METADATA_KEYS.has(k) && !k.startsWith("_"))
     .map(([k, v]) => `${k}=${v}`)
     .join("; ");
 }
@@ -393,19 +449,18 @@ export async function fetchFIFA({
     };
   }
 
-  // ── Phase: Load cookies ──
+  // ── Phase: Load and validate cookies ──
   console.log(`[FIFA] 🔄 Phase: Loading cookies for variant=resale`);
   let cookieString;
   try {
     cookieString = await loadFifaCookies("resale");
   } catch (err) {
     console.error(`[FIFA] ❌ Cookie/session error: ${err.message}`);
+    // All cookie errors are retryable auth problems, not hard crashes
     return {
       success: false,
       errorMessage: err.message,
-      errorCategory: err.message.startsWith("FIFA_COOKIE_")
-        ? "AUTH_ERROR"
-        : "UNKNOWN",
+      errorCategory: "AUTH_ERROR",
       retryable: true,
       latencyMs: Date.now() - start,
     };
@@ -466,7 +521,7 @@ export async function fetchFIFA({
       `[FIFA] 🔄 Phase: Calling availability API (perfId=${perfId} productId=${productId})`,
     );
 
-    // Re-read cookies fresh before availability call
+    // Re-read cookies fresh before availability call (may have been refreshed by harvester)
     let freshCookieString;
     try {
       freshCookieString = await loadFifaCookies("resale");

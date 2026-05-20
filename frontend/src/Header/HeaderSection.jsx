@@ -24,12 +24,14 @@ export default function HeaderSection() {
   const [pickerLoading, setPickerLoading] = useState(false);
   const [pickerError, setPickerError] = useState(null);
   const [urlValue, setUrlValue] = useState("");
+  const [saleSite, setSaleSite] = useState("");
 
   // Reset form after successful submission
   useEffect(() => {
     if (navigation.state === "idle" && actionData?.created) {
       formRef.current?.reset();
       setUrlValue("");
+      setSaleSite("");
     }
   }, [navigation.state, actionData]);
 
@@ -128,12 +130,13 @@ export default function HeaderSection() {
         <div className="col-span-1">
           <select
             name="saleSite"
-            defaultValue=""
-            className={styles.saleSiteSelect}
+            value={saleSite}
+            onChange={(e) => setSaleSite(e.target.value)}
+            className={`${styles.saleSiteSelect} ${!saleSite ? styles.placeholderActive : ""}`}
           >
-            <option value="">Satış Sitesi</option>
+            <option value="" className={styles.placeholderOption}>Satış Sitesi</option>
             {SALE_SITES.map((site) => (
-              <option key={site} value={site}>
+              <option key={site} value={site} className={styles.selectOption}>
                 {site}
               </option>
             ))}
@@ -231,7 +234,7 @@ export default function HeaderSection() {
               className={styles.currencySelect}
             >
               {CURRENCY_OPTIONS.map((c) => (
-                <option key={c} value={c}>
+                <option key={c} value={c} className={styles.selectOption}>
                   {c}
                 </option>
               ))}

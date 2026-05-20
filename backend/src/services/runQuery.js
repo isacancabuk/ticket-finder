@@ -60,25 +60,11 @@ export async function runQuery(queryId) {
     if (!sectionString) {
       sectionsToCheck = [null]; // null means broad availability mode
     } else if (query.domain === "FIFA") {
-      // FIFA categories contain spaces (e.g. "Category 1"), so we can't split on spaces naively.
-      // Handle both comma-separated ("Category 1,Category 2") and
-      // space-separated from section picker ("CATEGORY 1 CATEGORY 2 CATEGORY 3")
-      if (sectionString.includes(",")) {
-        sectionsToCheck = sectionString
-          .split(",")
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0);
-      } else {
-        // Try to detect "Category N" patterns
-        const categoryPattern = /category\s+\S+/gi;
-        const matches = sectionString.match(categoryPattern);
-        if (matches && matches.length > 0) {
-          sectionsToCheck = matches.map((m) => m.trim());
-        } else {
-          // Fallback: treat as single section
-          sectionsToCheck = [sectionString];
-        }
-      }
+      // FIFA: Do NOT split into separate sections.
+      // The availability API returns ALL categories in one response.
+      // fetchFIFA's parseFifaSectionString() handles multi-category matching
+      // internally, so we pass the entire section string as one item.
+      sectionsToCheck = [sectionString];
     } else {
       sectionsToCheck = sectionString
         .split(/[\s,]+/)

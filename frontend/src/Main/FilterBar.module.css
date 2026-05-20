@@ -1,25 +1,107 @@
 .filterContainer {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   width: 1000px;
   margin-bottom: 32px;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Top Row: Search */
+/* ===== Row 1: Search + Sort Toggles + Clear ===== */
 .topRow {
   display: flex;
   width: 100%;
-  gap: 12px;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 14px;
+  border: 1px solid var(--border-input);
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: var(--text-input);
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #305bce;
+  box-shadow: 0 0 0 3px rgba(48, 91, 206, 0.1), 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.searchInput::placeholder {
+  color: var(--text-light);
+}
+
+/* Sort Toggle Buttons */
+.sortToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--badge-bg-default);
+  border: 1px solid var(--badge-border-default);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.sortToggle:hover {
+  background: var(--bg-tab-container);
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.sortToggle:active {
+  background: var(--border-modal);
+  transform: scale(0.97);
+}
+
+.sortToggleActive {
+  background: rgba(48, 91, 206, 0.08);
+  border-color: var(--text-info);
+  color: var(--text-info);
+}
+
+.sortTogglePrimary {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: var(--text-warning);
+  color: var(--text-warning);
+}
+
+.sortTogglePrimary:hover {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: var(--text-warning);
+  color: var(--text-warning);
+}
+
+.sortToggleIcon {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.sortToggleLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .clearButton {
-  padding: 0 20px;
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #cbd5e1;
+  padding: 0 18px;
+  background: var(--badge-bg-default);
+  color: var(--text-secondary);
+  border: 1px solid var(--badge-border-default);
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
@@ -29,236 +111,117 @@
 }
 
 .clearButton:hover {
-  background: #e2e8f0;
-  color: #334155;
-  border-color: #94a3b8;
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--text-danger);
+  border-color: var(--text-danger);
 }
 
 .clearButton:active {
-  background: #cbd5e1;
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(0.97);
 }
 
-.searchInput {
-  width: 100%;
-  padding: 12px 16px;
-  font-size: 14px;
-  border: 1px solid #d4d4d4;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #333;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.searchInput:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1), 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.searchInput::placeholder {
-  color: #999;
-}
-
-/* Bottom Row: Filters */
-.bottomRow {
+/* ===== Row 2: Badge Filter Groups ===== */
+.badgeSection {
   display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  justify-content: space-around;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
   width: 100%;
 }
 
-/* Status Counter Bar */
-.statusBar {
+.badgeRow {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  width: 100%;
-  padding: 10px 0;
-  min-height: 40px;
 }
 
-.statusBadge {
+/* Filter Badge (Country, Platform, Sale Site) */
+.filterBadge {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 20px;
-  background: #f1f5f9;
-  border: 1.5px solid #e2e8f0;
+  background: var(--badge-bg-default);
+  border: 1.5px solid var(--badge-border-default);
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
-.statusBadge:hover {
-  background: #e2e8f0;
-  border-color: var(--badge-color, #94a3b8);
+.filterBadge:hover:not(.filterBadgeDisabled) {
+  background: var(--bg-tab-container);
+  border-color: var(--badge-color, var(--text-muted));
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-.statusBadgeActive {
-  background: color-mix(in srgb, var(--badge-color) 12%, white);
-  border-color: var(--badge-color, #2563eb);
-  color: var(--badge-color, #2563eb);
+.filterBadgeActive {
+  background: color-mix(in srgb, var(--badge-color) 10%, var(--badge-mix-base));
+  border-color: var(--badge-color, var(--text-info));
+  color: var(--badge-color, var(--text-info));
   box-shadow: 0 2px 8px color-mix(in srgb, var(--badge-color) 20%, transparent);
 }
 
-.statusDot {
-  width: 8px;
-  height: 8px;
+.filterBadgeDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.filterBadgeDot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.statusCount {
+.filterBadgeCount {
   font-weight: 800;
-  font-size: 14px;
+  font-size: 13px;
   letter-spacing: -0.3px;
 }
 
-.statusLabel {
+.filterBadgeLabel {
   font-weight: 500;
   font-size: 12px;
   letter-spacing: 0.2px;
 }
 
-.filterGroup {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  position: relative;
-}
 
-.filterLabel {
-  font-size: 11px;
-  font-weight: 600;
-  color: #666;
-  letter-spacing: 0.5px;
-}
-
-.filterButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
-  background: #ffffff;
-  border: 1px solid #d4d4d4;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  white-space: nowrap;
-  position: relative;
-  min-width: 150px;
-}
-
-.filterButton:hover {
-  border-color: #999;
-  background: #f9f9f9;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-.filterButton:active,
-.filterButton.active {
-  border-color: #2563eb;
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.dropdownIcon {
-  font-size: 10px;
-  display: inline-block;
-  transition: transform 0.2s ease;
-}
-
-.filterButton:active .dropdownIcon,
-.filterButton.active .dropdownIcon {
-  transform: rotate(-180deg);
-}
-
-.sortLabel {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* Dropdown */
-.dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 4px;
-  background: #ffffff;
-  border: 1px solid #d4d4d4;
-  border-radius: 6px;
-  min-width: 140px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  z-index: 100;
-  overflow: hidden;
-  animation: slideDown 0.15s ease;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.dropdownItem {
-  display: block;
-  width: 100%;
-  padding: 10px 12px;
-  text-align: left;
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.dropdownItem:hover {
-  background: #f3f4f6;
-  color: #2563eb;
-}
-
-.dropdownItem.active {
-  background: #eff6ff;
-  color: #2563eb;
-  font-weight: 600;
-}
-
-.dropdownItem:active {
-  background: #dbeafe;
-}
-
-/* Responsive Design */
+/* ===== Responsive Design ===== */
 @media (max-width: 768px) {
   .filterContainer {
     padding: 0 12px;
-    gap: 12px;
+    gap: 10px;
+    width: 100%;
   }
 
-  .bottomRow {
-    gap: 8px;
+  .topRow {
+    flex-wrap: wrap;
+  }
+
+  .searchInput {
+    min-width: 100%;
+  }
+
+  .badgeSection {
+    gap: 6px;
+  }
+
+  .badgeGroup {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .badgeGroupLabel {
+    text-align: left;
+    min-width: auto;
   }
 
   .statusBar {
@@ -270,39 +233,29 @@
     font-size: 12px;
   }
 
-  .filterButton {
-    padding: 6px 10px;
+  .filterBadge {
+    padding: 4px 10px;
     font-size: 12px;
   }
 
-  .dropdown {
-    min-width: 120px;
-  }
-
-  .dropdownItem {
-    padding: 8px 10px;
+  .sortToggle {
+    padding: 6px 10px;
     font-size: 12px;
   }
 }
 
 @media (max-width: 480px) {
-  .bottomRow {
-    flex-direction: column;
-    gap: 10px;
+  .topRow {
+    gap: 6px;
   }
 
-  .filterGroup {
-    width: 100%;
+  .sortToggle {
+    flex: 1;
+    justify-content: center;
   }
 
-  .filterButton {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .dropdown {
-    width: 100%;
-    left: 0;
-    right: 0;
+  .clearButton {
+    flex: 1;
+    text-align: center;
   }
 }

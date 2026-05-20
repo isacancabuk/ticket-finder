@@ -3,6 +3,7 @@ import { useLoaderData, useRevalidator } from "react-router-dom";
 import HeaderSection from "./Header/HeaderSection";
 import MainSection from "./Main/MainSection";
 import QueryModal from "./Main/QueryModal";
+import ThemeToggle from "./Main/ThemeToggle";
 
 export function RootLayout() {
   const queries = useLoaderData();
@@ -43,7 +44,8 @@ export function RootLayout() {
   }, []);
 
   return (
-    <main className="min-h-screen w-full flex flex-col items-center bg-[#e8e8e8] text-[rgb(100,100,100)]">
+    <main className="min-h-screen w-full flex flex-col items-center bg-[var(--bg-app)] text-[var(--text-app)]">
+      <ThemeToggle />
       <HeaderSection />
       <MainSection queries={queries} onCardClick={handleCardClick} />
       {selectedQuery && (

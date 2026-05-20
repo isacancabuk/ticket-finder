@@ -1,9 +1,10 @@
 import { connect } from "puppeteer-real-browser";
+import { writeFile, readFile, rename } from "fs/promises";
 
 // ── Configuration ─────────────────────────────────────────────────────
 const COOKIE_CHECK_INTERVAL_MS = 15 * 1000;    // Check readiness every 15s
-const COOKIE_REFRESH_INTERVAL_MS = 30 * 1000;  // After initial capture, refresh every 30s
-const KEEP_ALIVE_INTERVAL_MS = 4 * 60 * 1000;  // Reload page every 4min to keep session alive
+const KEEP_ALIVE_INTERVAL_MS = 3 * 60 * 1000;  // Keep-alive ping every 3min
+const MAX_CONSECUTIVE_403 = 3;                  // After this many 403s, navigate back to target
 
 // Canonical resale ticket-list page.
 // Cookies are ONLY valid when harvested AFTER the session reaches this
@@ -99,9 +100,19 @@ async function validatePageState(page) {
   }
 }
 
+// ── Atomic Cookie File Write ──────────────────────────────────────────
+// Write to a temp file first, then rename. This prevents the fetcher from
+// reading a half-written JSON file.
+async function atomicWriteCookies(cookieData) {
+  const tmpPath = "fifa-cookies.json.tmp";
+  const finalPath = "fifa-cookies.json";
+  const json = JSON.stringify(cookieData, null, 2);
+  await writeFile(tmpPath, json, "utf-8");
+  await rename(tmpPath, finalPath);
+}
+
 // ── Cookie Harvesting Loop ────────────────────────────────────────────
 async function startHarvesting(page) {
-  const fs = await import("fs/promises");
   let initialCaptured = false;
 
   return new Promise((resolveInitial) => {
@@ -110,7 +121,7 @@ async function startHarvesting(page) {
 
       try {
         const cookies = await page.cookies();
-        const { ready, issues, results, map } = checkCookieReadiness(cookies);
+        const { ready, issues, results } = checkCookieReadiness(cookies);
 
         // ── Not ready yet — log what's missing ──
         if (!ready) {
@@ -136,7 +147,7 @@ async function startHarvesting(page) {
           return;
         }
 
-        // ── Everything passed — write cookies ──
+        // ── Everything passed — write cookies atomically ──
         const cookieMap = {};
         for (const c of cookies) cookieMap[c.name] = c.value;
         cookieMap["_harvestedAt"] = Date.now();
@@ -144,7 +155,7 @@ async function startHarvesting(page) {
         // Read existing file (preserve structure)
         let allCookies = {};
         try {
-          const existing = await fs.readFile("fifa-cookies.json", "utf-8");
+          const existing = await readFile("fifa-cookies.json", "utf-8");
           allCookies = JSON.parse(existing);
         } catch {
           // File doesn't exist yet — start fresh
@@ -156,10 +167,8 @@ async function startHarvesting(page) {
         // Remove any stale "shop" key if it exists — resale-only from now on
         delete allCookies["shop"];
 
-        await fs.writeFile(
-          "fifa-cookies.json",
-          JSON.stringify(allCookies, null, 2),
-        );
+        // Atomic write: tmp file + rename
+        await atomicWriteCookies(allCookies);
 
         if (!initialCaptured) {
           console.log(`\n[${now}] ${"═".repeat(60)}`);
@@ -185,33 +194,72 @@ async function startHarvesting(page) {
           console.error(`[${now}] ❌ Cookie read error: ${e.message}`);
         }
       }
-    }, initialCaptured ? COOKIE_REFRESH_INTERVAL_MS : COOKIE_CHECK_INTERVAL_MS);
+    }, COOKIE_CHECK_INTERVAL_MS);
   });
 }
 
-// ── Keep-Alive (lightweight XHR, NOT page reload) ────────────────────
-// page.reload() destroys CACHE_PKP_TOKEN and breaks the session.
-// Instead, make a lightweight fetch from the page context to keep the
-// server-side session alive without clearing any cookies.
+// ── Keep-Alive with 403 Recovery ──────────────────────────────────────
+// Uses a browser-context GET (with credentials) instead of HEAD to behave
+// like a real browser navigation. If we get repeated 403s, navigate back
+// to the resale target URL to try to recover the session.
+// Recovery navigation does NOT bypass readiness checks — the harvesting
+// loop will only write cookies when all gates pass.
 function startKeepAlive(page) {
+  let consecutive403 = 0;
+
   return setInterval(async () => {
     const now = new Date().toLocaleTimeString();
     try {
-      const result = await page.evaluate(async () => {
+      // Use a browser-context GET with credentials — more browser-like than HEAD
+      const result = await page.evaluate(async (targetUrl) => {
         try {
-          const res = await fetch(window.location.href, {
-            method: "HEAD",
+          const res = await fetch(targetUrl, {
+            method: "GET",
             credentials: "include",
+            // Don't follow redirects in the fetch — just check the status
+            redirect: "manual",
           });
-          return { ok: true, status: res.status };
+          return { ok: true, status: res.status, type: res.type };
         } catch (e) {
           return { ok: false, error: e.message };
         }
-      });
-      if (result.ok) {
-        console.log(`[${now}] 💓 Keep-alive ping OK (HTTP ${result.status})`);
+      }, RESALE_TARGET_URL);
+
+      if (!result.ok) {
+        console.log(`[${now}] ⚠️ Keep-alive fetch error: ${result.error}`);
+        return;
+      }
+
+      // Check for 403 (DataDome block)
+      if (result.status === 403) {
+        consecutive403++;
+        console.log(
+          `[${now}] ⚠️ Keep-alive got 403 (${consecutive403}/${MAX_CONSECUTIVE_403} before recovery)`,
+        );
+
+        if (consecutive403 >= MAX_CONSECUTIVE_403) {
+          console.log(
+            `[${now}] 🔄 Recovery: navigating back to resale target page…`,
+          );
+          consecutive403 = 0;
+          try {
+            await page.goto(RESALE_TARGET_URL, {
+              waitUntil: "domcontentloaded",
+              timeout: 30000,
+            });
+            console.log(`[${now}] ✓ Recovery navigation complete — readiness checks will re-evaluate`);
+          } catch (navErr) {
+            console.error(`[${now}] ❌ Recovery navigation failed: ${navErr.message}`);
+          }
+        }
       } else {
-        console.log(`[${now}] ⚠️ Keep-alive ping failed: ${result.error}`);
+        // Reset counter on any non-403 response
+        if (consecutive403 > 0) {
+          console.log(`[${now}] 💓 Keep-alive OK (HTTP ${result.status}) — 403 counter reset`);
+        } else {
+          console.log(`[${now}] 💓 Keep-alive OK (HTTP ${result.status})`);
+        }
+        consecutive403 = 0;
       }
     } catch (e) {
       if (e.message.includes("Session closed") || e.message.includes("Target closed")) {
@@ -238,7 +286,9 @@ async function main() {
   console.log("  3. CACHE_PKP_TOKEN must exist");
   console.log("  4. stx_advantage_ids must exist and NOT be empty hash");
   console.log("  5. AcpAT-*-Resale auth token must exist");
-  console.log("  6. Page must show resale ticket content (not challenge/login)\n");
+  console.log("  6. Page must show resale ticket content (not challenge/login)");
+  console.log(`\nKeep-alive: GET every ${KEEP_ALIVE_INTERVAL_MS / 1000}s`);
+  console.log(`Recovery: navigate to target after ${MAX_CONSECUTIVE_403} consecutive 403s\n`);
 
   const { browser, page } = await connect({
     headless: false,
@@ -258,8 +308,10 @@ async function main() {
     if (success) {
       console.log(`${"═".repeat(70)}`);
       console.log("✅ Initial capture complete. Harvester will continue running.");
-      console.log("   Cookies are refreshed every 30 seconds.");
-      console.log("   Page is reloaded every 4 minutes to keep session alive.");
+      console.log("   Cookies are refreshed every 15 seconds (when readiness passes).");
+      console.log(`   Keep-alive ping every ${KEEP_ALIVE_INTERVAL_MS / 60000} minutes.`);
+      console.log(`   Auto-recovery after ${MAX_CONSECUTIVE_403} consecutive keep-alive 403s.`);
+      console.log("   Cookie writes are atomic (tmp+rename).");
       console.log("   Keep this browser open. Close it when done.");
       console.log(`${"═".repeat(70)}\n`);
     } else {

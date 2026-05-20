@@ -52,7 +52,7 @@ if (mode === "all" || mode === "mx") {
   startScheduler("mx", getNextMXQueryToRun, 30 * 1000);
 }
 if (mode === "all" || mode === "fifa") {
-  startScheduler("fifa", getNextFIFAQueryToRun, 30 * 1000);
+  startScheduler("fifa", getNextFIFAQueryToRun, 45 * 1000);
 }
 if (mode === "fifa_cookie") {
   console.log("FIFA Cookie Harvester (Puppeteer) çalıştırılıyor...");

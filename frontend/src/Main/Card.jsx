@@ -165,12 +165,12 @@ export default function Card({ query, onClick }) {
             style={isFifa ? { maxWidth: "80px", height: "auto" } : undefined}
           />
           {!isFifa && (
-            <div className="flex flex-row items-center justify-center gap-1 bg-white/30 px-2 py-1 rounded-md shadow-sm border border-white/20">
+            <div className="flex flex-row items-center justify-center gap-1 px-2 py-1">
               <span
                 className={`fi fi-${countryCode}`}
                 style={{ fontSize: "1.2rem", borderRadius: "2px" }}
               ></span>
-              <span className="font-bold text-xs" style={{ color: "#555" }}>
+              <span className={`font-bold text-xs ${styles.textSecondary}`}>
                 {domain || "DE"}
               </span>
             </div>
@@ -178,13 +178,13 @@ export default function Card({ query, onClick }) {
         </div>
         {description && (
           <p className={styles.description} title={description}>
-            <span style={{ color: "#555", fontWeight: "800" }}>NOT:</span>{" "}
+            <span className={`${styles.textSecondary} font-extrabold`}>NOT:</span>{" "}
             {description}
           </p>
         )}
         <p 
-          className={`font-bold text-2xl ${styles.statusText}`} 
-          style={{ position: "absolute", left: "687px", top: "18px", color: "#555" }}
+          className={`font-bold text-2xl ${styles.statusText} ${styles.textSecondary}`} 
+          style={{ position: "absolute", left: "687px", top: "18px" }}
         >
           {statusLabel}
         </p>
@@ -194,7 +194,7 @@ export default function Card({ query, onClick }) {
         <div className="flex flex-col items-center justify-center">
           {saleSite && (
             <div className={`${styles.saleSite} flex flex-col items-center justify-center gap-0.5`}>
-              <span style={{ color: "#555", fontWeight: 800 }}>
+              <span className={`${styles.textSecondary} font-extrabold`}>
                 Satış Sitesi:
               </span>
               <div className="flex items-center gap-1.5">
@@ -223,18 +223,10 @@ export default function Card({ query, onClick }) {
 
         <div className="flex flex-col items-center px-6 w-full">
           {metaLine && <p className={`${styles.eventMeta} font-bold`}>{metaLine}</p>}
-          <p
-            className="text-2xl font-bold text-center"
-            style={{
-              textWrap: "balance",
-              lineHeight: "1.2",
-              marginBottom: "4px",
-              color: "#555",
-            }}
-          >
+          <p className={`text-2xl font-bold text-center ${styles.eventTitle}`}>
             {eventName || "Unknown Event"}
           </p>
-          <p className="text-lg text-gray-500 font-bold">
+          <p className={`text-lg font-bold ${styles.textMuted}`}>
             ARANAN: {section || "Tümü"}
             {minSeats && minSeats > 1 ? ` x ${minSeats}` : ""}
           </p>
@@ -243,7 +235,8 @@ export default function Card({ query, onClick }) {
               displayStatus === "purchased" ||
               displayStatus === "price_exceeded") && (
               <p
-                className={`text-md font-bold ${displayStatus === "price_exceeded" ? "text-orange-500" : "text-green-600"}`}
+                className="text-md font-bold"
+                style={{ color: displayStatus === "price_exceeded" ? "var(--text-warning)" : "var(--text-success)" }}
               >
                 BULUNAN: {query.foundSection}
               </p>
@@ -251,26 +244,26 @@ export default function Card({ query, onClick }) {
         </div>
 
         <div className="flex flex-col items-start justify-center w-full pl-6">
-          <div className="text-xs font-bold flex flex-col gap-0.5 items-start" style={{ color: "#555" }}>
+          <div className={`text-xs font-bold flex flex-col gap-0.5 items-start ${styles.textSecondary}`}>
              {salePrice != null && (
                  <p>
-                    <span className="text-indigo-500">SATIŞ:</span> {formatPrice(salePrice, saleCurrency)}
+                    <span style={{ color: "var(--text-info)" }}>SATIŞ:</span> {formatPrice(salePrice, saleCurrency)}
                     {salePriceInEUR != null && salePriceCurrency !== "EUR" && ` (${formatPrice(salePriceInEUR, "EUR")})`}
                  </p>
              )}
              {maxPrice != null && (
                  <p>
-                    <span className="text-orange-500">MAX:</span> {formatPrice(maxPrice, foundCurrency)}
+                    <span style={{ color: "var(--text-warning)" }}>MAX:</span> {formatPrice(maxPrice, foundCurrency)}
                  </p>
              )}
              {(displayStatus === "found" || displayStatus === "price_exceeded" || displayStatus === "purchased") && foundPrice != null && (
                  <p>
-                    <span className="text-emerald-600">BULUNAN:</span> {foundPrice === -1 ? "Fiyat bilgisi yok" : `${formatPrice(foundPrice, foundCurrency)}${foundPriceInEUR != null && foundCurrency !== "EUR" ? ` (${formatPrice(foundPriceInEUR, "EUR")})` : ""}`}
+                    <span style={{ color: "var(--text-success)" }}>BULUNAN:</span> {foundPrice === -1 ? "Fiyat bilgisi yok" : `${formatPrice(foundPrice, foundCurrency)}${foundPriceInEUR != null && foundCurrency !== "EUR" ? ` (${formatPrice(foundPriceInEUR, "EUR")})` : ""}`}
                  </p>
              )}
              {profitLossLine && (
                  <p>
-                    <span className="text-gray-500">{isProfit === false ? "ZARAR:" : "KAR:"}</span> <span className={isProfit === false ? "text-red-500" : "text-green-600"}>{profitLossLine}</span>
+                    <span className={styles.textMuted}>{isProfit === false ? "ZARAR:" : "KAR:"}</span> <span style={{ color: isProfit === false ? "var(--text-danger)" : "var(--text-success)" }}>{profitLossLine}</span>
                  </p>
              )}
 
@@ -279,15 +272,15 @@ export default function Card({ query, onClick }) {
                      <br />
                      <div className="flex flex-col gap-0.5">
                          {gogoPrice != null && (
-                             <p className="text-purple-600 flex items-center gap-1.5">
+                             <p className="flex items-center gap-1.5" style={{ color: "var(--text-purple)" }}>
                                  <img src={SALE_SITE_LOGOS["ViaGogo"]} alt="GOGO" style={{ height: "1.1em", width: "auto", borderRadius: "2px" }} />
-                                 <span><span className="text-gray-500">GOGO:</span> {formatPrice(gogoPrice, "EUR")}</span>
+                                 <span><span className={styles.textMuted}>GOGO:</span> {formatPrice(gogoPrice, "EUR")}</span>
                              </p>
                          )}
                          {tixPrice != null && (
-                             <p className="text-purple-600 flex items-center gap-1.5">
+                             <p className="flex items-center gap-1.5" style={{ color: "var(--text-purple)" }}>
                                  <img src={SALE_SITE_LOGOS["TixStock"]} alt="Tix" style={{ height: "1.1em", width: "auto", borderRadius: "2px" }} />
-                                 <span><span className="text-gray-500">Tix:</span> {formatPrice(tixPrice, "EUR")}</span>
+                                 <span><span className={styles.textMuted}>Tix:</span> {formatPrice(tixPrice, "EUR")}</span>
                              </p>
                          )}
                      </div>
