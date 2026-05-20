@@ -77,27 +77,26 @@ function applyFilters(mapped, filterState, excludeFilter) {
       if (!matchesOrderNo && !matchesEventName) return false;
     }
 
-    // Status filter
-    if (excludeFilter !== "status" && filterState.selectedStatus !== "ALL" && q.displayStatus !== filterState.selectedStatus) {
-      return false;
+    // Status filter (multi-select: empty set = show all)
+    if (excludeFilter !== "status" && filterState.selectedStatuses.size > 0) {
+      if (!filterState.selectedStatuses.has(q.displayStatus)) return false;
     }
 
-    // Country filter
-    if (excludeFilter !== "country" && filterState.selectedCountry !== "Tümü") {
-      if (!q.domain || q.domain !== filterState.selectedCountry) return false;
+    // Country filter (multi-select: empty set = show all)
+    if (excludeFilter !== "country" && filterState.selectedCountries.size > 0) {
+      if (!q.domain || !filterState.selectedCountries.has(q.domain)) return false;
     }
 
-    // Site filter
-    if (excludeFilter !== "site" && filterState.selectedSite !== "Tümü") {
-      const expectedSite = filterState.selectedSite.toLowerCase();
+    // Site filter (multi-select: empty set = show all)
+    if (excludeFilter !== "site" && filterState.selectedSites.size > 0) {
       const querySite = getQuerySite(q);
-      if (querySite !== expectedSite) return false;
+      if (!filterState.selectedSites.has(querySite)) return false;
     }
 
-    // Sale Site filter
-    if (excludeFilter !== "saleSite" && filterState.selectedSaleSite !== "Tümü") {
+    // Sale Site filter (multi-select: empty set = show all)
+    if (excludeFilter !== "saleSite" && filterState.selectedSaleSites.size > 0) {
       const qSaleSite = getQuerySaleSite(q);
-      if (qSaleSite !== filterState.selectedSaleSite) return false;
+      if (!filterState.selectedSaleSites.has(qSaleSite)) return false;
     }
 
     return true;
@@ -107,11 +106,11 @@ function applyFilters(mapped, filterState, excludeFilter) {
 export default function MainSection({ queries = [], onCardClick }) {
   const [filterState, setFilterState] = useState({
     searchQuery: "",
-    selectedCountry: "Tümü",
-    selectedSite: "Tümü",
-    selectedSaleSite: "Tümü",
+    selectedCountries: new Set(),
+    selectedSites: new Set(),
+    selectedSaleSites: new Set(),
+    selectedStatuses: new Set(),
     sortDateAsc: false,
-    selectedStatus: "ALL",
     sortByProfit: "HIGH", // HIGH, LOW
     primarySort: "profit", // "profit" or "date"
   });

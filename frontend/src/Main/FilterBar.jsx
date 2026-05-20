@@ -32,6 +32,17 @@ const PROFIT_SORTS = [
   { label: "↑ En Düşük", value: "LOW" },
 ];
 
+// Helper to toggle a value in a Set (immutable)
+function toggleInSet(set, value) {
+  const next = new Set(set);
+  if (next.has(value)) {
+    next.delete(value);
+  } else {
+    next.add(value);
+  }
+  return next;
+}
+
 export default function FilterBar({
   filterState,
   onFilterChange,
@@ -42,11 +53,11 @@ export default function FilterBar({
 }) {
   const {
     searchQuery,
-    selectedCountry,
-    selectedSite,
-    selectedSaleSite,
+    selectedCountries,
+    selectedSites,
+    selectedSaleSites,
     sortDateAsc,
-    selectedStatus,
+    selectedStatuses,
     sortByProfit,
     primarySort,
   } = filterState;
@@ -58,11 +69,11 @@ export default function FilterBar({
   const handleClearFilters = () => {
     onFilterChange({
       searchQuery: "",
-      selectedCountry: "Tümü",
-      selectedSite: "Tümü",
-      selectedSaleSite: "Tümü",
+      selectedCountries: new Set(),
+      selectedSites: new Set(),
+      selectedSaleSites: new Set(),
+      selectedStatuses: new Set(),
       sortDateAsc: false,
-      selectedStatus: "ALL",
       sortByProfit: "HIGH",
       primarySort: "profit",
     });
@@ -168,7 +179,7 @@ export default function FilterBar({
         <div className={styles.badgeRow}>
           {sortedPlatformKeys.map((key) => {
             const count = platformCounts[key] || 0;
-            const isActive = selectedSite === key;
+            const isActive = selectedSites.has(key);
             const isDisabled = count === 0;
             return (
               <button
@@ -177,11 +188,7 @@ export default function FilterBar({
                 style={{ "--badge-color": "#0891b2" }}
                 onClick={() => {
                   if (isDisabled) return;
-                  if (isActive) {
-                    handleChange({ selectedSite: "Tümü" });
-                  } else {
-                    handleChange({ selectedSite: key });
-                  }
+                  handleChange({ selectedSites: toggleInSet(selectedSites, key) });
                 }}
               >
                 <span className={styles.filterBadgeDot} style={{ background: "#0891b2" }} />
@@ -198,7 +205,7 @@ export default function FilterBar({
         <div className={styles.badgeRow}>
           {sortedCountryKeys.map((key) => {
             const count = countryCounts[key] || 0;
-            const isActive = selectedCountry === key;
+            const isActive = selectedCountries.has(key);
             const isDisabled = count === 0;
             return (
               <button
@@ -207,11 +214,7 @@ export default function FilterBar({
                 style={{ "--badge-color": "#d97706" }}
                 onClick={() => {
                   if (isDisabled) return;
-                  if (isActive) {
-                    handleChange({ selectedCountry: "Tümü" });
-                  } else {
-                    handleChange({ selectedCountry: key });
-                  }
+                  handleChange({ selectedCountries: toggleInSet(selectedCountries, key) });
                 }}
               >
                 <span className={styles.filterBadgeDot} style={{ background: "#d97706" }} />
@@ -228,7 +231,7 @@ export default function FilterBar({
         <div className={styles.badgeRow}>
           {sortedSaleSiteKeys.map((key) => {
             const count = saleSiteCounts[key] || 0;
-            const isActive = selectedSaleSite === key;
+            const isActive = selectedSaleSites.has(key);
             const isDisabled = count === 0;
             return (
               <button
@@ -237,11 +240,7 @@ export default function FilterBar({
                 style={{ "--badge-color": "#8b5cf6" }}
                 onClick={() => {
                   if (isDisabled) return;
-                  if (isActive) {
-                    handleChange({ selectedSaleSite: "Tümü" });
-                  } else {
-                    handleChange({ selectedSaleSite: key });
-                  }
+                  handleChange({ selectedSaleSites: toggleInSet(selectedSaleSites, key) });
                 }}
               >
                 <span className={styles.filterBadgeDot} style={{ background: "#8b5cf6" }} />
@@ -256,7 +255,7 @@ export default function FilterBar({
         <div className={styles.badgeRow}>
           {STATUS_COUNTER_CONFIG.map(({ key, label, color }) => {
             const count = statusCounts[key] || 0;
-            const isActive = selectedStatus === key;
+            const isActive = selectedStatuses.has(key);
             const isDisabled = count === 0;
             return (
               <button
@@ -265,11 +264,7 @@ export default function FilterBar({
                 style={{ "--badge-color": color }}
                 onClick={() => {
                   if (isDisabled) return;
-                  if (isActive) {
-                    handleChange({ selectedStatus: "ALL" });
-                  } else {
-                    handleChange({ selectedStatus: key });
-                  }
+                  handleChange({ selectedStatuses: toggleInSet(selectedStatuses, key) });
                 }}
               >
                 <span className={styles.filterBadgeDot} style={{ background: color }} />
